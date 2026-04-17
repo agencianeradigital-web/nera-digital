@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — Nera Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f4f5f9;--surface:#fff;--surface2:#f0f1f8;--surface3:#e8eaf4;
+    --border:#e0e2f0;--border2:#c8cae8;
+    --text:#1a1060;--text2:#4a4a7a;--text3:#8888aa;
+    --accent:#5B5BD6;--accent2:#4848b8;--accent-dim:rgba(91,91,214,.08);--accent-dim2:rgba(91,91,214,.16);
+    --red:#e03030;--red-dim:rgba(224,48,48,.08);
+    --blue:#5B5BD6;--blue-dim:rgba(91,91,214,.08);
+    --amber:#F5A623;--amber-dim:rgba(245,166,35,.1);
+    --green:#1a9e5a;--green-dim:rgba(26,158,90,.1);
+    --gold:#F5A623;--gold-dim:rgba(245,166,35,.12);
+    --radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+  /* LOGIN */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px;width:100%;max-width:400px}
+  .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+  .login-mark{width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;font-family:'DM Mono',monospace}
+  .login-title{font-size:16px;font-weight:500}
+  .login-sub{font-size:12px;color:var(--text3);margin-top:2px}
+  .login-field{margin-bottom:14px}
+  .login-field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px}
+  .login-field input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+  .login-field input:focus{border-color:var(--accent)}
+  .login-err{font-size:12px;color:var(--red);margin-bottom:12px;display:none}
+
+  /* APP */
+  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .logo-mark{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff;font-family:'DM Mono',monospace}
+  .logo-name{font-size:14px;font-weight:500}
+  .nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 6px;padding:0 8px}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+  .nav-item:hover{background:var(--surface2);color:var(--text)}
+  .nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+  .nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+  .nav-item.active .nav-dot{opacity:1}
+  .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border)}
+  .user-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);font-size:12px;color:var(--text2)}
+  .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-dim2);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+  .logout-btn{margin-left:auto;font-size:11px;color:var(--text3);cursor:pointer;padding:3px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;transition:all .15s}
+  .logout-btn:hover{color:var(--red);border-color:var(--red)}
+
+  .main{padding:36px 40px;overflow-y:auto}
+  .page{display:none}
+  .page.active{display:block}
+  .page-header{margin-bottom:28px}
+  .page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+  .page-sub{font-size:13px;color:var(--text2)}
+
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+  .metric{background:var(--surface2);border-radius:var(--radius);padding:16px}
+  .metric-label{font-size:11px;color:var(--text3);margin-bottom:6px}
+  .metric-value{font-size:24px;font-weight:600;font-family:'DM Mono',monospace}
+  .metric-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+  /* CARD */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+
+  /* TABLE */
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl th{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .tbl td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tr:hover td{background:var(--surface2)}
+  .tbl td.name{color:var(--text);font-weight:500}
+
+  /* BADGES */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .badge-pending{background:var(--amber-dim);color:var(--amber)}
+  .badge-approved{background:var(--green-dim);color:var(--green)}
+  .badge-rejected{background:var(--red-dim);color:var(--red)}
+  .badge-published{background:var(--accent-dim);color:var(--accent)}
+  .badge-generating{background:var(--gold-dim);color:var(--gold)}
+  .badge-none{background:var(--surface2);color:var(--text3);border:1px solid var(--border2)}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--radius);font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn-primary:hover{background:var(--accent2)}
+  .btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+  .btn-secondary:hover{background:var(--surface2);color:var(--text)}
+  .btn-sm{padding:5px 12px;font-size:11px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* FORM */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .field textarea{resize:vertical;min-height:70px;line-height:1.5}
+  .field input::placeholder,.field textarea::placeholder{color:var(--text3)}
+  .section-sep{height:1px;background:var(--border);margin:20px 0}
+  .section-title-sm{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+
+  /* PLATFORM GRID */
+  .plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .plat-item{border:1px solid var(--border2);border-radius:var(--radius);padding:10px;cursor:pointer;transition:all .15s}
+  .plat-item:hover{background:var(--surface2)}
+  .plat-item.on{border-color:rgba(200,240,96,.4);background:var(--accent-dim)}
+  .plat-name{font-size:12px;font-weight:500;color:var(--text);margin-top:3px}
+  .plat-item.on .plat-name{color:var(--accent)}
+  .plat-desc{font-size:10px;color:var(--text3)}
+
+  /* TOGGLE */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+  .toggle-row:last-child{border-bottom:none}
+  .toggle-label{font-size:13px;color:var(--text)}
+  .toggle-sub{font-size:11px;color:var(--text3)}
+  .toggle{position:relative;width:34px;height:18px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0;position:absolute}
+  .toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:9px;transition:background .2s;cursor:pointer}
+  .toggle input:checked+.toggle-track{background:var(--accent)!important}
+  .toggle-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none}
+  .toggle input:checked~.toggle-thumb{transform:translateX(16px)}
+
+  /* TABS */
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+  .tab{font-size:13px;padding:8px 16px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-pane{display:none}
+  .tab-pane.active{display:block}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.ok{border-color:var(--accent);color:var(--accent)}
+  .toast.err{border-color:var(--red);color:var(--red)}
+
+  /* LOADING */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,240,96,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(15,15,15,.7);align-items:center;justify-content:center;z-index:500;flex-direction:column;gap:12px;font-size:13px;color:var(--text2)}
+  .loading-overlay.show{display:flex}
+
+  /* EMPTY STATE */
+  .empty{text-align:center;padding:48px 20px;color:var(--text3)}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+  .empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px}
+
+  @media(max-width:768px){
+    .app{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .main{padding:20px 16px}
+    .metrics{grid-template-columns:1fr 1fr}
+    .form-grid,.form-grid-3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-mark">N</div>
+      <div>
+        <div class="login-title">Nera Digital</div>
+        <div class="login-sub">Painel da agência</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doLogin()" id="login-btn">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="app" style="display:none">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div>
+        <div class="logo-name">Nera Digital</div>
+        <div style="font-size:11px;color:var(--text3)">Painel da agência</div>
+      </div>
+    </div>
+    <div class="nav-label">Menu</div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><div class="nav-dot"></div>Dashboard</div>
+    <div class="nav-item" onclick="showPage('clientes')"><div class="nav-dot"></div>Clientes</div>
+    <div class="nav-item" onclick="showPage('semanas')"><div class="nav-dot"></div>Semanas / Posts</div>
+    <div class="nav-item" onclick="showPage('config')"><div class="nav-dot"></div>Configurações</div>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-initials">?</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-email-display"></div>
+          <div style="font-size:10px;color:var(--text3)">Agência</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Sair</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub" id="dash-semana"></div>
+      </div>
+      <div class="metrics" id="dash-metrics">
+        <div class="metric"><div class="metric-label">Clientes ativos</div><div class="metric-value" id="m-clientes">—</div></div>
+        <div class="metric"><div class="metric-label">Posts esta semana</div><div class="metric-value" id="m-posts">—</div></div>
+        <div class="metric"><div class="metric-label">Aguardando aprovação</div><div class="metric-value" id="m-aguardando">—</div></div>
+        <div class="metric"><div class="metric-label">Publicados no mês</div><div class="metric-value" id="m-publicados">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Clientes — semana atual</div>
+          <button class="btn btn-primary btn-sm" onclick="showPage('clientes')">+ Novo cliente</button>
+        </div>
+        <div id="dash-table-wrap">
+          <div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Carregando...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="page" id="page-clientes">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="page-title">Clientes</div>
+          <div class="page-sub">Cadastro completo de cada cliente</div>
+        </div>
+        <button class="btn btn-primary" onclick="openClienteForm()">+ Novo cliente</button>
+      </div>
+      <div class="card" id="cliente-list-card">
+        <div id="cliente-list-wrap">
+          <div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Carregando clientes...</div></div>
+        </div>
+      </div>
+      <!-- FORM CLIENTE -->
+      <div id="cliente-form-wrap" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="form-title">Novo cliente</div>
+            <button class="btn btn-secondary btn-sm" onclick="closeClienteForm()">Cancelar</button>
+          </div>
+          <div class="tabs">
+            <div class="tab active" onclick="switchFormTab(0)">Dados gerais</div>
+            <div class="tab" onclick="switchFormTab(1)">Fiscal</div>
+            <div class="tab" onclick="switchFormTab(2)">Contrato</div>
+            <div class="tab" onclick="switchFormTab(3)">Plataformas</div>
+          </div>
+          <!-- TAB 0 -->
+          <div class="tab-pane active" id="ftab-0">
+            <div class="form-grid">
+              <div class="field"><label>Nome do negócio *</label><input type="text" id="f-nome" placeholder="Ex: Odontologia Sorrir"></div>
+              <div class="field"><label>Segmento</label>
+                <select id="f-seg"><option value="">Selecione...</option><option>Saúde e bem-estar</option><option>Alimentação e gastronomia</option><option>Beleza e estética</option><option>Odontologia</option><option>Educação</option><option>Varejo</option><option>Serviços</option><option>Outro</option></select>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>Responsável *</label><input type="text" id="f-resp" placeholder="Ex: Dra. Ana Lima"></div>
+              <div class="field"><label>Cargo</label><input type="text" id="f-cargo" placeholder="Ex: Sócia-proprietária"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>WhatsApp</label><input type="text" id="f-wpp" placeholder="(11) 99999-0000"></div>
+              <div class="field"><label>E-mail</label><input type="text" id="f-email" placeholder="contato@empresa.com.br"></div>
+            </div>
+            <div class="field"><label>Site</label><input type="text" id="f-site" placeholder="https://www.empresa.com.br"></div>
+            <div class="form-grid">
+              <div class="field"><label>Canal de aprovação</label>
+                <select id="f-canal"><option value="whatsapp">WhatsApp</option><option value="email">E-mail</option></select>
+              </div>
+              <div class="field"><label>Observações internas</label><input type="text" id="f-obs" placeholder="Notas da equipe..."></div>
+            </div>
+          </div>
+          <!-- TAB 1 -->
+          <div class="tab-pane" id="ftab-1">
+            <div class="section-title-sm">Tipo de pessoa</div>
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button class="btn btn-primary btn-sm" id="btn-pj" onclick="setTipo('pj')">Pessoa jurídica</button>
+              <button class="btn btn-secondary btn-sm" id="btn-pf" onclick="setTipo('pf')">Pessoa física</button>
+            </div>
+            <div id="pj-wrap">
+              <div class="form-grid">
+                <div class="field"><label>CNPJ</label><input type="text" id="f-cnpj" placeholder="00.000.000/0001-00"></div>
+                <div class="field"><label>Razão social</label><input type="text" id="f-razao" placeholder="Empresa Ltda."></div>
+              </div>
+            </div>
+            <div id="pf-wrap" style="display:none">
+              <div class="form-grid">
+                <div class="field"><label>CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00"></div>
+                <div class="field"><label>RG</label><input type="text" id="f-rg" placeholder="00.000.000-0"></div>
+              </div>
+            </div>
+            <div class="section-sep"></div>
+            <div class="section-title-sm">Endereço</div>
+            <div class="form-grid">
+              <div class="field"><label>CEP</label><input type="text" id="f-cep" placeholder="00000-000"></div>
+              <div class="field"><label>Logradouro</label><input type="text" id="f-logradouro" placeholder="Rua, Av..."></div>
+            </div>
+            <div class="form-grid-3">
+              <div class="field"><label>Número</label><input type="text" id="f-numero" placeholder="123"></div>
+              <div class="field"><label>Bairro</label><input type="text" id="f-bairro" placeholder="Centro"></div>
+              <div class="field"><label>Cidade</label><input type="text" id="f-cidade" placeholder="São Paulo"></div>
+            </div>
+            <div class="field"><label>Estado</label><input type="text" id="f-estado" placeholder="SP" style="max-width:80px"></div>
+          </div>
+          <!-- TAB 2 -->
+          <div class="tab-pane" id="ftab-2">
+            <div class="form-grid">
+              <div class="field"><label>Plano / serviço</label>
+                <select id="f-plano"><option>Gestão de conteúdo — Starter (3 posts/sem)</option><option>Gestão de conteúdo — Pro</option><option>Gestão completa — Full</option><option>Personalizado</option></select>
+              </div>
+              <div class="field"><label>Valor mensal (R$)</label><input type="number" id="f-valor" placeholder="0,00"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>Data de início</label><input type="date" id="f-inicio"></div>
+              <div class="field"><label>Fidelidade</label>
+                <select id="f-fidelidade"><option>Sem fidelidade</option><option>3 meses</option><option>6 meses</option><option>12 meses</option></select>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label>Vencimento</label>
+                <select id="f-venc"><option value="5">Dia 5</option><option value="10">Dia 10</option><option value="15">Dia 15</option><option value="20">Dia 20</option><option value="25">Dia 25</option></select>
+              </div>
+              <div class="field"><label>Forma de pagamento</label>
+                <select id="f-pgto"><option>Boleto bancário</option><option>PIX</option><option>Cartão de crédito</option></select>
+              </div>
+            </div>
+          </div>
+          <!-- TAB 3 -->
+          <div class="tab-pane" id="ftab-3">
+            <div class="section-title-sm">Plataformas de publicação</div>
+            <div class="plat-grid">
+              <div class="plat-item on" id="pt-blog" onclick="togglePlat('blog')"><div style="font-size:16px">📝</div><div class="plat-name">Blog WordPress</div><div class="plat-desc">Artigo SEO</div></div>
+              <div class="plat-item on" id="pt-gmn" onclick="togglePlat('gmn')"><div style="font-size:16px">📍</div><div class="plat-name">Google Meu Negócio</div><div class="plat-desc">Post local</div></div>
+              <div class="plat-item on" id="pt-instagram" onclick="togglePlat('instagram')"><div style="font-size:16px">📸</div><div class="plat-name">Instagram</div><div class="plat-desc">Post + hashtags</div></div>
+              <div class="plat-item on" id="pt-facebook" onclick="togglePlat('facebook')"><div style="font-size:16px">📘</div><div class="plat-name">Facebook</div><div class="plat-desc">Post</div></div>
+              <div class="plat-item" id="pt-tiktok" onclick="togglePlat('tiktok')"><div style="font-size:16px">🎬</div><div class="plat-name">TikTok</div><div class="plat-desc">Roteiro</div></div>
+              <div class="plat-item" id="pt-email_mkt" onclick="togglePlat('email_mkt')"><div style="font-size:16px">✉️</div><div class="plat-name">E-mail marketing</div><div class="plat-desc">Newsletter</div></div>
+            </div>
+            <div class="section-sep"></div>
+            <div class="section-title-sm">Notificações automáticas</div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Envio semanal de aprovação</div><div class="toggle-sub">Toda segunda-feira</div></div>
+              <label class="toggle"><input type="checkbox" id="f-notif-semanal" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Lembrete após 24h sem resposta</div><div class="toggle-sub">Mensagem privada ao aprovador</div></div>
+              <label class="toggle"><input type="checkbox" id="f-notif-lembrete" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Confirmação após publicação</div><div class="toggle-sub">Avisa quando posts forem ao ar</div></div>
+              <label class="toggle"><input type="checkbox" id="f-notif-confirm"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+          </div>
+          <div class="section-sep"></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn btn-secondary" onclick="closeClienteForm()">Cancelar</button>
+            <button class="btn btn-primary" id="save-cliente-btn" onclick="saveCliente()">Salvar cliente</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEMANAS -->
+    <div class="page" id="page-semanas">
+      <div class="page-header">
+        <div class="page-title">Semanas / Posts</div>
+        <div class="page-sub">Histórico de conteúdo gerado por cliente</div>
+      </div>
+      <div class="card">
+        <div id="semanas-wrap">
+          <div class="empty"><div class="empty-icon">📅</div><div class="empty-title">Carregando...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="page-header">
+        <div class="page-title">Configurações</div>
+        <div class="page-sub">Chaves de API e dados da agência</div>
+      </div>
+      <div class="card">
+        <div class="section-title-sm">APIs de conteúdo</div>
+        <div class="form-grid">
+          <div class="field"><label>Anthropic API Key (Claude)</label><input type="password" id="cfg-anthropic" placeholder="sk-ant-..."></div>
+          <div class="field"><label>OpenAI API Key (DALL-E)</label><input type="password" id="cfg-openai" placeholder="sk-..."></div>
+        </div>
+        <div class="section-sep"></div>
+        <div class="section-title-sm">WhatsApp (Z-API)</div>
+        <div class="form-grid">
+          <div class="field"><label>Instance ID</label><input type="text" id="cfg-zapi-instance" placeholder="ID da instância Z-API"></div>
+          <div class="field"><label>Token Z-API</label><input type="password" id="cfg-zapi-token" placeholder="Token Z-API"></div>
+        </div>
+        <div class="section-sep"></div>
+        <div class="section-title-sm">Asaas (cobranças)</div>
+        <div class="form-grid">
+          <div class="field"><label>API Key Asaas</label><input type="password" id="cfg-asaas" placeholder="$aas_..."></div>
+          <div class="field"><label>Modo</label><select id="cfg-asaas-mode"><option value="false">Produção</option><option value="true">Sandbox (testes)</option></select></div>
+        </div>
+        <div class="section-sep"></div>
+        <div class="section-title-sm">Agência</div>
+        <div class="form-grid">
+          <div class="field"><label>Nome da agência</label><input type="text" id="cfg-agencia-nome" placeholder="Nera Digital"></div>
+          <div class="field"><label>Site</label><input type="text" id="cfg-agencia-site" placeholder="https://neradigital.com.br"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-primary" onclick="saveConfig()">Salvar configurações</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <span id="loading-msg">Carregando...</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SUPABASE ────────────────────────────────────────────────
+const SUPA_URL = 'https://dcsxhdqwdoxbwgokzlea.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+// ─── STATE ────────────────────────────────────────────────────
+const activePlats = new Set(['blog','gmn','instagram','facebook']);
+let editingClienteId = null;
+let tipoPessoa = 'pj';
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.onload = async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp(session.user);
+  else showLogin();
+};
+
+// ─── AUTH ─────────────────────────────────────────────────────
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+function showApp(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'grid';
+  const email = user.email || '';
+  document.getElementById('user-email-display').textContent = email;
+  document.getElementById('user-initials').textContent = email.slice(0,2).toUpperCase();
+  loadDashboard();
+  loadConfig();
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Entrar';
+  btn.disabled = false;
+  if (error) { err.textContent = 'E-mail ou senha incorretos.'; err.style.display = 'block'; return; }
+  showApp(data.user);
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  showLogin();
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const map = { dashboard:0, clientes:1, semanas:2, config:3 };
+  document.querySelectorAll('.nav-item')[map[id]]?.classList.add('active');
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'clientes') loadClientes();
+  if (id === 'semanas') loadSemanas();
+  if (id === 'config') loadConfig();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────
+async function loadDashboard() {
+  const hoje = new Date();
+  const semanaStr = `Semana de ${hoje.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'})}`;
+  document.getElementById('dash-semana').textContent = semanaStr;
+
+  const { data: clientes } = await sb.from('clientes').select('id').eq('ativo', true);
+  document.getElementById('m-clientes').textContent = clientes?.length ?? 0;
+
+  const inicioSemana = getMonday(hoje).toISOString().split('T')[0];
+  const { data: semanas } = await sb.from('semanas').select('*,posts(*)').eq('semana_inicio', inicioSemana);
+  const totalPosts = semanas?.reduce((a,s) => a + (s.posts?.length||0), 0) ?? 0;
+  const aguardando = semanas?.filter(s => s.status === 'aguardando_aprovacao').length ?? 0;
+  document.getElementById('m-posts').textContent = totalPosts;
+  document.getElementById('m-aguardando').textContent = aguardando;
+
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+  const { count: pubCount } = await sb.from('posts').select('*', { count:'exact', head:true }).eq('status','publicado').gte('publicado_em', inicioMes);
+  document.getElementById('m-publicados').textContent = pubCount ?? 0;
+
+  const { data: dashData } = await sb.from('clientes').select(`
+    id, nome_negocio, responsavel, whatsapp, plataformas, ativo,
+    semanas!inner(id, status, semana_inicio, link_token,
+      posts(id, status, tipo)
+    )
+  `).eq('ativo', true).eq('semanas.semana_inicio', inicioSemana);
+
+  const { data: clientesSemSemana } = await sb.from('clientes')
+    .select('id, nome_negocio, responsavel, whatsapp, plataformas')
+    .eq('ativo', true)
+    .not('id', 'in', `(${(dashData||[]).map(c=>c.id).join(',') || '00000000-0000-0000-0000-000000000000'})`);
+
+  const todos = [...(dashData||[]).map(c => ({...c, semana: c.semanas?.[0]})), ...(clientesSemSemana||[]).map(c => ({...c, semana: null}))];
+
+  if (!todos.length) {
+    document.getElementById('dash-table-wrap').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Nenhum cliente ativo</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Adicione clientes em "Clientes"</div></div>';
+    return;
+  }
+
+  const rows = todos.map(c => {
+    const s = c.semana;
+    const statusBadge = s ? getBadge(s.status) : '<span class="badge badge-none">Sem semana</span>';
+    const aprovados = s?.posts?.filter(p=>p.status==='aprovado').length ?? 0;
+    const total = s?.posts?.length ?? 0;
+    return `<tr>
+      <td class="name">${c.nome_negocio}</td>
+      <td>${c.responsavel||'—'}</td>
+      <td>${statusBadge}</td>
+      <td style="font-family:'DM Mono',monospace">${total ? aprovados+'/'+total : '—'}</td>
+      <td>
+        ${s ? `<button class="btn btn-secondary btn-sm" onclick="copyLink('${s.link_token}')">Copiar link</button>` : ''}
+        <button class="btn btn-secondary btn-sm" style="margin-left:4px" onclick="showPage('clientes')">Ver</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('dash-table-wrap').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Cliente</th><th>Responsável</th><th>Status</th><th>Aprovação</th><th>Ações</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─── CLIENTES ─────────────────────────────────────────────────
+async function loadClientes() {
+  const { data, error } = await sb.from('clientes').select('*').eq('ativo', true).order('nome_negocio');
+  if (error) { toast('Erro ao carregar clientes', 'err'); return; }
+  if (!data?.length) {
+    document.getElementById('cliente-list-wrap').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Nenhum cliente cadastrado</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Clique em "+ Novo cliente" para começar</div></div>';
+    return;
+  }
+  const rows = data.map(c => `
+    <tr>
+      <td class="name">${c.nome_negocio}</td>
+      <td>${c.responsavel||'—'}</td>
+      <td>${c.segmento||'—'}</td>
+      <td>${c.whatsapp||'—'}</td>
+      <td>${(c.plataformas||[]).length} plataformas</td>
+      <td>R$ ${(c.valor_mensal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="editCliente('${c.id}')">Editar</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:4px;color:var(--red);border-color:var(--red)" onclick="deleteCliente('${c.id}','${c.nome_negocio}')">Remover</button>
+      </td>
+    </tr>`).join('');
+  document.getElementById('cliente-list-wrap').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nome</th><th>Responsável</th><th>Segmento</th><th>WhatsApp</th><th>Plataformas</th><th>Mensalidade</th><th>Ações</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function openClienteForm() {
+  editingClienteId = null;
+  resetForm();
+  document.getElementById('form-title').textContent = 'Novo cliente';
+  document.getElementById('cliente-list-card').style.display = 'none';
+  document.getElementById('cliente-form-wrap').style.display = 'block';
+  switchFormTab(0);
+}
+
+function closeClienteForm() {
+  document.getElementById('cliente-list-card').style.display = 'block';
+  document.getElementById('cliente-form-wrap').style.display = 'none';
+  editingClienteId = null;
+  loadClientes();
+}
+
+function resetForm() {
+  ['f-nome','f-resp','f-cargo','f-wpp','f-email','f-site','f-obs',
+   'f-cnpj','f-razao','f-cpf','f-rg','f-cep','f-logradouro','f-numero','f-bairro','f-cidade','f-estado',
+   'f-valor'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('f-inicio').value = new Date().toISOString().split('T')[0];
+  activePlats.clear();
+  ['blog','gmn','instagram','facebook'].forEach(p => { activePlats.add(p); document.getElementById('pt-'+p)?.classList.add('on'); });
+  ['tiktok','email_mkt'].forEach(p => document.getElementById('pt-'+p)?.classList.remove('on'));
+  setTipo('pj');
+}
+
+async function editCliente(id) {
+  const { data } = await sb.from('clientes').select('*').eq('id', id).single();
+  if (!data) return;
+  editingClienteId = id;
+  document.getElementById('form-title').textContent = 'Editar cliente';
+  document.getElementById('f-nome').value = data.nome_negocio||'';
+  document.getElementById('f-seg').value = data.segmento||'';
+  document.getElementById('f-resp').value = data.responsavel||'';
+  document.getElementById('f-cargo').value = data.cargo||'';
+  document.getElementById('f-wpp').value = data.whatsapp||'';
+  document.getElementById('f-email').value = data.email||'';
+  document.getElementById('f-site').value = data.site||'';
+  document.getElementById('f-obs').value = data.obs_internas||'';
+  document.getElementById('f-cnpj').value = data.cnpj||'';
+  document.getElementById('f-razao').value = data.razao_social||'';
+  document.getElementById('f-cpf').value = data.cpf||'';
+  document.getElementById('f-rg').value = data.rg||'';
+  document.getElementById('f-cep').value = data.cep||'';
+  document.getElementById('f-logradouro').value = data.logradouro||'';
+  document.getElementById('f-numero').value = data.numero||'';
+  document.getElementById('f-bairro').value = data.bairro||'';
+  document.getElementById('f-cidade').value = data.cidade||'';
+  document.getElementById('f-estado').value = data.estado||'';
+  document.getElementById('f-valor').value = data.valor_mensal||'';
+  document.getElementById('f-inicio').value = data.data_inicio||'';
+  document.getElementById('f-canal').value = data.canal_aprovacao||'whatsapp';
+  setTipo(data.tipo_pessoa||'pj');
+  activePlats.clear();
+  (data.plataformas||[]).forEach(p => { activePlats.add(p); document.getElementById('pt-'+p)?.classList.add('on'); });
+  ['blog','gmn','instagram','facebook','tiktok','email_mkt'].forEach(p => {
+    if (!activePlats.has(p)) document.getElementById('pt-'+p)?.classList.remove('on');
+  });
+  document.getElementById('cliente-list-card').style.display = 'none';
+  document.getElementById('cliente-form-wrap').style.display = 'block';
+  switchFormTab(0);
+}
+
+async function saveCliente() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const resp = document.getElementById('f-resp').value.trim();
+  if (!nome || !resp) { toast('Preencha nome do negócio e responsável', 'err'); return; }
+  const btn = document.getElementById('save-cliente-btn');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+  const payload = {
+    nome_negocio: nome,
+    segmento: document.getElementById('f-seg').value,
+    responsavel: resp,
+    cargo: document.getElementById('f-cargo').value,
+    whatsapp: document.getElementById('f-wpp').value,
+    email: document.getElementById('f-email').value,
+    site: document.getElementById('f-site').value,
+    obs_internas: document.getElementById('f-obs').value,
+    canal_aprovacao: document.getElementById('f-canal').value,
+    tipo_pessoa: tipoPessoa,
+    cnpj: document.getElementById('f-cnpj').value,
+    razao_social: document.getElementById('f-razao').value,
+    cpf: document.getElementById('f-cpf').value,
+    rg: document.getElementById('f-rg').value,
+    cep: document.getElementById('f-cep').value,
+    logradouro: document.getElementById('f-logradouro').value,
+    numero: document.getElementById('f-numero').value,
+    bairro: document.getElementById('f-bairro').value,
+    cidade: document.getElementById('f-cidade').value,
+    estado: document.getElementById('f-estado').value,
+    valor_mensal: parseFloat(document.getElementById('f-valor').value)||0,
+    data_inicio: document.getElementById('f-inicio').value||null,
+    fidelidade: document.getElementById('f-fidelidade').value,
+    vencimento_dia: parseInt(document.getElementById('f-venc').value),
+    forma_pagamento: document.getElementById('f-pgto').value,
+    plano: document.getElementById('f-plano').value,
+    plataformas: [...activePlats],
+    notif_envio_semanal: document.getElementById('f-notif-semanal').checked,
+    notif_lembrete_24h: document.getElementById('f-notif-lembrete').checked,
+    notif_confirmacao: document.getElementById('f-notif-confirm').checked,
+    ativo: true,
+  };
+  let error;
+  if (editingClienteId) {
+    ({ error } = await sb.from('clientes').update(payload).eq('id', editingClienteId));
+  } else {
+    ({ error } = await sb.from('clientes').insert(payload));
+  }
+  btn.textContent = 'Salvar cliente'; btn.disabled = false;
+  if (error) { toast('Erro ao salvar: ' + error.message, 'err'); return; }
+  toast(editingClienteId ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'ok');
+  closeClienteForm();
+}
+
+async function deleteCliente(id, nome) {
+  if (!confirm(`Remover "${nome}"? Esta ação desativará o cliente.`)) return;
+  const { error } = await sb.from('clientes').update({ ativo: false }).eq('id', id);
+  if (error) { toast('Erro ao remover', 'err'); return; }
+  toast('Cliente removido', 'ok');
+  loadClientes();
+}
+
+// ─── SEMANAS ──────────────────────────────────────────────────
+async function loadSemanas() {
+  const { data, error } = await sb.from('semanas')
+    .select('*, clientes(nome_negocio), posts(id,tipo,status)')
+    .order('semana_inicio', { ascending: false })
+    .limit(50);
+  if (error || !data?.length) {
+    document.getElementById('semanas-wrap').innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-title">Nenhuma semana gerada ainda</div></div>';
+    return;
+  }
+  const rows = data.map(s => {
+    const ap = s.posts?.filter(p=>p.status==='aprovado').length??0;
+    const tot = s.posts?.length??0;
+    return `<tr>
+      <td class="name">${s.clientes?.nome_negocio||'—'}</td>
+      <td>${s.semana_inicio}</td>
+      <td>${getBadge(s.status)}</td>
+      <td style="font-family:'DM Mono',monospace">${ap}/${tot}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="copyLink('${s.link_token}')">Copiar link cliente</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('semanas-wrap').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Cliente</th><th>Semana</th><th>Status</th><th>Aprovação</th><th>Link</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─── CONFIG ───────────────────────────────────────────────────
+async function loadConfig() {
+  const { data } = await sb.from('configuracoes').select('chave,valor');
+  if (!data) return;
+  const map = {};
+  data.forEach(r => { map[r.chave] = r.valor; });
+  const set = (id, key) => { const el=document.getElementById(id); if(el&&map[key]) el.value=map[key]; };
+  set('cfg-anthropic','anthropic_key');
+  set('cfg-openai','openai_key');
+  set('cfg-zapi-instance','zapi_instance');
+  set('cfg-zapi-token','zapi_token');
+  set('cfg-asaas','asaas_key');
+  set('cfg-asaas-mode','asaas_sandbox');
+  set('cfg-agencia-nome','agencia_nome');
+  set('cfg-agencia-site','agencia_site');
+}
+
+async function saveConfig() {
+  const pairs = [
+    ['anthropic_key', 'cfg-anthropic'],
+    ['openai_key', 'cfg-openai'],
+    ['zapi_instance', 'cfg-zapi-instance'],
+    ['zapi_token', 'cfg-zapi-token'],
+    ['asaas_key', 'cfg-asaas'],
+    ['asaas_sandbox', 'cfg-asaas-mode'],
+    ['agencia_nome', 'cfg-agencia-nome'],
+    ['agencia_site', 'cfg-agencia-site'],
+  ];
+  for (const [chave, elId] of pairs) {
+    const valor = document.getElementById(elId)?.value;
+    if (valor !== undefined) {
+      await sb.from('configuracoes').upsert({ chave, valor, atualizado_em: new Date().toISOString() }, { onConflict: 'chave' });
+    }
+  }
+  toast('Configurações salvas!', 'ok');
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────
+function switchFormTab(idx) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-pane').forEach((p,i) => p.classList.toggle('active', i===idx));
+}
+
+function setTipo(tipo) {
+  tipoPessoa = tipo;
+  document.getElementById('pj-wrap').style.display = tipo==='pj'?'block':'none';
+  document.getElementById('pf-wrap').style.display = tipo==='pf'?'block':'none';
+  document.getElementById('btn-pj').className = 'btn btn-sm ' + (tipo==='pj'?'btn-primary':'btn-secondary');
+  document.getElementById('btn-pf').className = 'btn btn-sm ' + (tipo==='pf'?'btn-primary':'btn-secondary');
+}
+
+function togglePlat(id) {
+  const el = document.getElementById('pt-'+id);
+  if (activePlats.has(id)) { activePlats.delete(id); el.classList.remove('on'); }
+  else { activePlats.add(id); el.classList.add('on'); }
+}
+
+function getBadge(status) {
+  const map = {
+    gerando: ['badge-generating','Gerando'],
+    aguardando_aprovacao: ['badge-pending','Aguardando'],
+    em_revisao: ['badge-rejected','Em revisão'],
+    aprovado: ['badge-approved','Aprovado'],
+    publicado: ['badge-published','Publicado'],
+    cancelado: ['badge-none','Cancelado'],
+  };
+  const [cls, label] = map[status] || ['badge-none', status||'—'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function copyLink(token) {
+  const url = `${window.location.origin}/aprovacao/${token}`;
+  navigator.clipboard.writeText(url);
+  toast('Link copiado!', 'ok');
+}
+
+function getMonday(d) {
+  const day = d.getDay(), diff = d.getDate() - day + (day===0?-6:1);
+  return new Date(d.setDate(diff));
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type||'');
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function loading(show, msg='Carregando...') {
+  const el = document.getElementById('loading');
+  el.classList.toggle('show', show);
+  document.getElementById('loading-msg').textContent = msg;
+}
+</script>
+</body>
+</html>

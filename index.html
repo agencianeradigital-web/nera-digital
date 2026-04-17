@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Conteúdo — Nera Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f9;--surface:#fff;--surface2:#f0f1f8;--surface3:#e8eaf4;
+  --border:#e0e2f0;--border2:#c8cae8;
+  --text:#1a1060;--text2:#4a4a7a;--text3:#8888aa;
+  --accent:#5B5BD6;--accent2:#4848b8;
+  --accent-dim:rgba(91,91,214,.08);--accent-dim2:rgba(91,91,214,.16);
+  --gold:#F5A623;--gold-dim:rgba(245,166,35,.12);
+  --red:#e03030;--red-dim:rgba(224,48,48,.08);
+  --green:#1a9e5a;--green-dim:rgba(26,158,90,.1);
+  --amber:#F5A623;--amber-dim:rgba(245,166,35,.1);
+  --radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff}
+.logo-name{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3)}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 6px;padding:0 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.nav-item.active .nav-dot{opacity:1}
+.sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border)}
+.status-badge{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s}
+.status-badge:hover{border-color:var(--border2)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
+.sdot.ok{background:var(--green)}
+
+/* MAIN */
+.main{padding:36px 40px;overflow-y:auto}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+
+/* FORM */
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim2)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5}
+.field input::placeholder,.field textarea::placeholder{color:var(--text3)}
+
+/* PLATAFORMAS */
+.plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.plat-item{border:1px solid var(--border);border-radius:var(--radius);padding:10px;cursor:pointer;transition:all .15s}
+.plat-item:hover{background:var(--surface2)}
+.plat-item.on{border-color:rgba(91,91,214,.4);background:var(--accent-dim)}
+.plat-icon{font-size:16px;margin-bottom:4px}
+.plat-name{font-size:12px;font-weight:500;color:var(--text)}
+.plat-item.on .plat-name{color:var(--accent)}
+.plat-desc{font-size:10px;color:var(--text3)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--surface2);color:var(--text)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-gold:hover{background:#e09010}
+.btn-full{width:100%;justify-content:center;padding:12px;font-size:14px}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* PIPELINE */
+.pipeline{display:flex;flex-direction:column;gap:0}
+.pipe-step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
+.pipe-step:last-child{border-bottom:none}
+.pipe-num{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);flex-shrink:0;transition:all .3s;font-family:'DM Mono',monospace}
+.pipe-num.running{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.pipe-num.done{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.pipe-num.error{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.pipe-body{flex:1;padding-top:4px}
+.pipe-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.pipe-desc{font-size:12px;color:var(--text3)}
+.pipe-bar{height:3px;background:var(--surface3);border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.pipe-bar.show{display:block}
+.pipe-fill{height:100%;border-radius:2px;background:var(--accent);width:0%;transition:width .3s}
+.pipe-result{margin-top:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text2);line-height:1.6;display:none;font-family:'DM Mono',monospace}
+.pipe-result.show{display:block}
+
+/* RESULT TABS */
+.result-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.rtab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text2);background:transparent;transition:all .15s}
+.rtab:hover{color:var(--text)}
+.rtab.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.3)}
+.rtab-content{display:none}
+.rtab-content.active{display:block}
+
+/* CONTENT BLOCKS */
+.content-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:12px}
+.content-block-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.content-block-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.content-text{font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.content-edit{width:100%;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:12px;font-family:'DM Sans',sans-serif;line-height:1.7;resize:vertical;min-height:200px;outline:none}
+.content-edit:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+.img-preview{width:100%;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;min-height:160px;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;overflow:hidden}
+.img-preview img{width:100%;height:auto;border-radius:var(--radius);display:block}
+.seo-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.seo-badge{font-size:11px;padding:3px 9px;border-radius:6px;font-weight:500;border:1px solid}
+.seo-green{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+.seo-gold{background:var(--gold-dim);color:var(--gold);border-color:rgba(245,166,35,.2)}
+.seo-blue{background:var(--accent-dim);color:var(--accent2);border-color:rgba(91,91,214,.15)}
+
+/* COPY BTN */
+.copy-btn{padding:4px 10px;border-radius:6px;font-size:11px;background:var(--surface);color:var(--text3);border:1px solid var(--border2);cursor:pointer;transition:all .15s}
+.copy-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* STATUS BARS */
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:20px}
+.status-bar.success{background:var(--green-dim);color:var(--green);border:1px solid rgba(26,158,90,.2)}
+.status-bar.error{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,48,48,.2)}
+.status-bar.info{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(91,91,214,.2)}
+.status-bar.warning{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,166,35,.2)}
+
+/* CONFIG */
+.cfg-section{margin-bottom:24px}
+.cfg-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.cfg-desc{font-size:12px;color:var(--text3);margin-bottom:12px}
+.api-wrap{position:relative}
+.api-wrap input{padding-right:72px;font-family:'DM Mono',monospace;font-size:12px}
+.api-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2)}
+.api-toggle:hover{color:var(--text)}
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* HISTORY */
+.hist-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;background:var(--surface);cursor:pointer;transition:all .15s}
+.hist-item:hover{border-color:var(--border2);background:var(--surface2)}
+.hist-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.hist-info{flex:1}
+.hist-name{font-size:13px;font-weight:500;color:var(--text)}
+.hist-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.hist-badge{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(91,91,214,.2)}
+
+/* SPINNER */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(91,91,214,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease forwards}
+
+/* METADADOS BOX */
+.meta-box{background:var(--accent-dim);border:1px solid rgba(91,91,214,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);line-height:1.8}
+.meta-box strong{color:var(--accent);font-weight:600}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+.toast.gold{background:var(--gold)}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+@media(max-width:768px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:20px 16px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .plat-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <div>
+      <div class="logo-name">Nera Digital</div>
+      <div class="logo-sub">Gerador de conteúdo v2.0</div>
+    </div>
+  </div>
+  <div class="nav-label">Menu</div>
+  <div class="nav-item active" onclick="showPage('generator')"><div class="nav-dot"></div>Gerar conteúdo</div>
+  <div class="nav-item" onclick="showPage('history')"><div class="nav-dot"></div>Histórico</div>
+  <div class="nav-label" style="margin-top:20px">Sistema</div>
+  <div class="nav-item" onclick="showPage('config')"><div class="nav-dot"></div>Configurações</div>
+  <div class="sidebar-footer">
+    <div class="status-badge" onclick="showPage('config')">
+      <div class="sdot" id="sdot"></div>
+      <div>
+        <div style="font-size:12px;font-weight:500" id="stext">APIs não configuradas</div>
+        <div style="font-size:10px;color:var(--text3)">Clique para configurar</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- GERADOR -->
+<div class="page active" id="page-generator">
+  <div class="page-title">Gerar conteúdo</div>
+  <div class="page-sub">Preencha os dados e gere artigo, GMN, social e imagens em segundos.</div>
+
+  <div id="form-section">
+    <div class="card">
+      <div class="card-title">Dados do cliente</div>
+      <div class="grid2">
+        <div class="field"><label>Nome do negócio</label><input type="text" id="f-biz" placeholder="Ex: Odontologia Sorrir"></div>
+        <div class="field"><label>Segmento</label>
+          <select id="f-seg">
+            <option value="">Selecione...</option>
+            <option>Saúde e bem-estar</option><option>Odontologia</option>
+            <option>Alimentação e gastronomia</option><option>Beleza e estética</option>
+            <option>Direito e jurídico</option><option>Construção e reforma</option>
+            <option>Educação</option><option>Varejo</option><option>Serviços</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Cidade / região</label><input type="text" id="f-city" placeholder="Ex: São Paulo, SP"></div>
+        <div class="field"><label>Palavra-chave principal</label><input type="text" id="f-kw" placeholder="Ex: dentista em Campinas"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Serviço / produto principal</label><input type="text" id="f-service" placeholder="Ex: Implante dentário"></div>
+        <div class="field"><label>Intenção de busca</label>
+          <select id="f-intent">
+            <option>Posicionamento local (SEO + GMN)</option>
+            <option>Informativo / educativo</option>
+            <option>Transacional (contratar / comprar)</option>
+            <option>Autoridade / institucional</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Diferenciais do negócio</label><textarea id="f-diff" placeholder="Ex: Atendimento 24h, convênios aceitos, especialista certificado, 15 anos de experiência..."></textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Tom de voz</label>
+          <select id="f-tone">
+            <option>Profissional e confiável</option><option>Descontraído e próximo</option>
+            <option>Sofisticado e premium</option><option>Educativo e didático</option>
+          </select>
+        </div>
+        <div class="field"><label>Tipo de artigo</label>
+          <select id="f-type">
+            <option value="pilar">Página pilar (tema principal)</option>
+            <option value="secundario">Página secundária (subtema)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Páginas existentes no site (para linkagem interna)</label><input type="text" id="f-pages" placeholder="Ex: /sobre, /servicos/implantes, /contato (separadas por vírgula)"></div>
+      <div class="field"><label>URL do Google Meu Negócio</label><input type="text" id="f-gmn" placeholder="https://maps.google.com/..."></div>
+      <div class="field"><label>Informações extras (promoções, eventos, novidades)</label><textarea id="f-extra" placeholder="Ex: Esta semana oferecemos consulta gratuita para novos pacientes..."></textarea></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Autor / E-E-A-T</div>
+      <div class="grid2">
+        <div class="field"><label>Nome do autor</label><input type="text" id="f-author" placeholder="Ex: Dr. Carlos Ferreira"></div>
+        <div class="field"><label>Especialização</label><input type="text" id="f-author-title" placeholder="Ex: Cirurgião-Dentista especialista em implantes"></div>
+      </div>
+      <div class="field"><label>Credenciais (CRM, OAB, CREA, certificações)</label><input type="text" id="f-cred" placeholder="Ex: CRO-SP 12345 · Especialista CFO"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Plataformas de publicação</div>
+      <div class="plat-grid">
+        <div class="plat-item on" id="pt-blog" onclick="togglePlat('blog')"><div class="plat-icon">📝</div><div class="plat-name">Blog WordPress</div><div class="plat-desc">Artigo SEO completo</div></div>
+        <div class="plat-item on" id="pt-gmn" onclick="togglePlat('gmn')"><div class="plat-icon">📍</div><div class="plat-name">Google Meu Negócio</div><div class="plat-desc">Post local</div></div>
+        <div class="plat-item on" id="pt-instagram" onclick="togglePlat('instagram')"><div class="plat-icon">📸</div><div class="plat-name">Instagram</div><div class="plat-desc">Legenda + hashtags</div></div>
+        <div class="plat-item on" id="pt-facebook" onclick="togglePlat('facebook')"><div class="plat-icon">📘</div><div class="plat-name">Facebook</div><div class="plat-desc">Post adaptado</div></div>
+        <div class="plat-item on" id="pt-linkedin" onclick="togglePlat('linkedin')"><div class="plat-icon">💼</div><div class="plat-name">LinkedIn</div><div class="plat-desc">Post profissional</div></div>
+        <div class="plat-item on" id="pt-image" onclick="togglePlat('image')"><div class="plat-icon">🖼️</div><div class="plat-name">Imagens (IA)</div><div class="plat-desc">DALL-E + Gemini</div></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="gen-btn" onclick="startGeneration()">
+      <span>Gerar conteúdo completo</span>
+    </button>
+  </div>
+
+  <!-- PIPELINE -->
+  <div id="pipeline-section" style="display:none">
+    <div class="card">
+      <div class="card-title">Gerando conteúdo...</div>
+      <div class="pipeline" id="pipeline-steps"></div>
+    </div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div id="results-section" style="display:none" class="fade-in">
+    <div class="status-bar success"><span>✓</span><span>Conteúdo gerado! Revise e edite antes de salvar.</span></div>
+
+    <div id="meta-section"></div>
+
+    <div class="result-tabs" id="result-tabs"></div>
+    <div id="result-contents"></div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveToSupabase()"><span class="spinner" id="save-spinner" style="display:none"></span>Salvar no sistema</button>
+      <button class="btn btn-gold" onclick="copyAllContent()">Copiar tudo</button>
+      <button class="btn btn-secondary" onclick="resetForm()">Gerar novo</button>
+    </div>
+    <div id="save-status" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- HISTÓRICO -->
+<div class="page" id="page-history">
+  <div class="page-title">Histórico</div>
+  <div class="page-sub">Conteúdos gerados e salvos neste navegador.</div>
+  <div id="history-list"></div>
+</div>
+
+<!-- CONFIGURAÇÕES -->
+<div class="page" id="page-config">
+  <div class="page-title">Configurações</div>
+  <div class="page-sub">Cole suas chaves de API abaixo. Ficam salvas apenas neste navegador.</div>
+  <div class="card">
+    <div class="cfg-section">
+      <div class="cfg-title">Anthropic — Claude API</div>
+      <div class="cfg-desc">Gera artigo, GMN, social e análise SEO. Obtenha em platform.anthropic.com → API Keys.</div>
+      <div class="field api-wrap"><label>Chave (sk-ant-...)</label><input type="password" id="cfg-anthropic" placeholder="sk-ant-api03-..." oninput="saveConfig()"><span class="api-toggle" onclick="toggleVis('cfg-anthropic',this)">mostrar</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="cfg-section">
+      <div class="cfg-title">OpenAI — DALL-E 3</div>
+      <div class="cfg-desc">Gera imagem de capa (artigo + GMN). Obtenha em platform.openai.com → API Keys.</div>
+      <div class="field api-wrap"><label>Chave (sk-...)</label><input type="password" id="cfg-openai" placeholder="sk-proj-..." oninput="saveConfig()"><span class="api-toggle" onclick="toggleVis('cfg-openai',this)">mostrar</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="cfg-section">
+      <div class="cfg-title">Google — Gemini API (Nano Banana Pro)</div>
+      <div class="cfg-desc">Gera imagens para redes sociais. Obtenha em aistudio.google.com → Get API Key.</div>
+      <div class="field api-wrap"><label>Chave (AIza...)</label><input type="password" id="cfg-gemini" placeholder="AIza..." oninput="saveConfig()"><span class="api-toggle" onclick="toggleVis('cfg-gemini',this)">mostrar</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="cfg-section">
+      <div class="cfg-title">Informações da agência</div>
+      <div class="grid2">
+        <div class="field"><label>Nome da agência</label><input type="text" id="cfg-agency" placeholder="Nera Digital" oninput="saveConfig()"></div>
+        <div class="field"><label>Site</label><input type="text" id="cfg-site" placeholder="https://neradigital.com.br" oninput="saveConfig()"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>WhatsApp da agência</label><input type="text" id="cfg-wpp" placeholder="(11) 99999-0000" oninput="saveConfig()"></div>
+        <div class="field"><label>Prazo de aprovação (horas)</label><input type="number" id="cfg-prazo" placeholder="48" oninput="saveConfig()"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:8px">
+    <div class="card-title">Sobre as chaves</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7">As chaves ficam salvas apenas no seu navegador (localStorage). Nunca são enviadas para servidores externos além das próprias APIs.<br><br><strong style="color:var(--text)">Custo estimado por geração completa:</strong> ~R$0,30 a R$0,80 (artigo 2.000 palavras + 3 imagens).</div>
+  </div>
+</div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ─── SUPABASE ─────────────────────────────────────────────────
+const SUPA_URL='https://dcsxhdqwdoxbwgokzlea.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ─── STATE ────────────────────────────────────────────────────
+const activePlats=new Set(['blog','gmn','instagram','facebook','linkedin','image']);
+let generatedContent={};
+let isGenerating=false;
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.onload=()=>{loadConfig();renderHistory();updateStatus()};
+
+// ─── NAV ──────────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const m={generator:0,history:1,config:2};
+  document.querySelectorAll('.nav-item')[m[id]]?.classList.add('active');
+  if(id==='history')renderHistory();
+}
+
+// ─── CONFIG ───────────────────────────────────────────────────
+function saveConfig(){
+  ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k);
+    if(el)localStorage.setItem('nd_'+k,el.value);
+  });
+  updateStatus();
+}
+function loadConfig(){
+  ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
+    const v=localStorage.getItem('nd_'+k);
+    const el=document.getElementById('cfg-'+k);
+    if(v&&el)el.value=v;
+  });
+}
+function updateStatus(){
+  const a=!!localStorage.getItem('nd_anthropic');
+  const o=!!localStorage.getItem('nd_openai');
+  const g=!!localStorage.getItem('nd_gemini');
+  const dot=document.getElementById('sdot');
+  const txt=document.getElementById('stext');
+  if(a&&o&&g){dot.className='sdot ok';txt.textContent='APIs configuradas'}
+  else if(a&&o){dot.className='sdot ok';txt.textContent='Gemini não configurada'}
+  else if(a){dot.className='sdot';txt.textContent='OpenAI não configurada'}
+  else{dot.className='sdot';txt.textContent='APIs não configuradas'}
+}
+function toggleVis(id,btn){
+  const el=document.getElementById(id);
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'mostrar':'ocultar';
+}
+
+// ─── PLATAFORMAS ──────────────────────────────────────────────
+function togglePlat(id){
+  const el=document.getElementById('pt-'+id);
+  if(activePlats.has(id)){activePlats.delete(id);el.classList.remove('on')}
+  else{activePlats.add(id);el.classList.add('on')}
+}
+
+// ─── GERAÇÃO ──────────────────────────────────────────────────
+async function startGeneration(){
+  const biz=document.getElementById('f-biz').value.trim();
+  const kw=document.getElementById('f-kw').value.trim();
+  if(!biz||!kw){toast('Preencha nome do negócio e palavra-chave','err');return}
+  const anthropicKey=localStorage.getItem('nd_anthropic');
+  if(!anthropicKey){toast('Configure a chave Anthropic primeiro','err');showPage('config');return}
+  if(isGenerating)return;
+  isGenerating=true;
+  generatedContent={};
+  document.getElementById('form-section').style.display='none';
+  document.getElementById('pipeline-section').style.display='block';
+  document.getElementById('results-section').style.display='none';
+
+  const ctx=buildContext();
+  const steps=buildSteps();
+  renderPipeline(steps);
+
+  for(const step of steps){
+    setRunning(step.id);
+    try{
+      if(step.id==='img_capa'){await generateDalleImage(step,ctx)}
+      else if(step.id==='img_social'){await generateGeminiImage(step,ctx)}
+      else{await generateText(step,ctx,anthropicKey)}
+    }catch(e){
+      setError(step.id);
+      setResult(step.id,'Erro: '+e.message);
+    }
+  }
+
+  renderResults(steps);
+  document.getElementById('pipeline-section').style.display='none';
+  document.getElementById('results-section').style.display='block';
+  isGenerating=false;
+}
+
+function buildContext(){
+  return{
+    biz:document.getElementById('f-biz').value.trim(),
+    seg:document.getElementById('f-seg').value,
+    city:document.getElementById('f-city').value.trim(),
+    kw:document.getElementById('f-kw').value.trim(),
+    service:document.getElementById('f-service').value.trim(),
+    intent:document.getElementById('f-intent').value,
+    diff:document.getElementById('f-diff').value.trim(),
+    tone:document.getElementById('f-tone').value,
+    type:document.getElementById('f-type').value,
+    pages:document.getElementById('f-pages').value.trim(),
+    gmn_url:document.getElementById('f-gmn').value.trim(),
+    extra:document.getElementById('f-extra').value.trim(),
+    author:document.getElementById('f-author').value.trim(),
+    author_title:document.getElementById('f-author-title').value.trim(),
+    cred:document.getElementById('f-cred').value.trim(),
+    agency:localStorage.getItem('nd_agency')||'Nera Digital',
+    prazo:localStorage.getItem('nd_prazo')||'48',
+  };
+}
+
+function buildSteps(){
+  const steps=[];
+  steps.push({id:'analise',num:'01',title:'Análise SEO e palavras-chave',desc:'LSI, relações lexicais, N-grams, schema, intenção de busca'});
+  if(activePlats.has('blog'))steps.push({id:'artigo',num:'02',title:'Artigo para blog (Rank Math)',desc:'H1-H3, 5W2H, Explicar→Convencer→Conduzir, 2.000+ palavras'});
+  if(activePlats.has('gmn'))steps.push({id:'gmn',num:'03',title:'Post Google Meu Negócio',desc:'Texto local, CTA, horários e endereço'});
+  if(activePlats.has('instagram'))steps.push({id:'instagram',num:'04',title:'Post Instagram',desc:'Legenda + 15 hashtags estratégicas'});
+  if(activePlats.has('facebook'))steps.push({id:'facebook',num:'05',title:'Post Facebook',desc:'Versão adaptada para Facebook'});
+  if(activePlats.has('linkedin'))steps.push({id:'linkedin',num:'06',title:'Post LinkedIn',desc:'Tom profissional e de autoridade'});
+  if(activePlats.has('image')&&localStorage.getItem('nd_openai'))steps.push({id:'img_capa',num:'07',title:'Imagem de capa (DALL-E 3)',desc:'Fotorrealista para blog e GMN — 1792×1024px'});
+  if(activePlats.has('image')&&localStorage.getItem('nd_gemini'))steps.push({id:'img_social',num:'08',title:'Imagem social (Gemini)',desc:'Imagem para Instagram e Facebook — 1080×1080px'});
+  return steps;
+}
+
+// ─── PROMPTS ──────────────────────────────────────────────────
+function getPrompt(stepId,ctx){
+  const base=`Empresa: ${ctx.biz}\nSegmento: ${ctx.seg}\nCidade: ${ctx.city}\nPalavra-chave: ${ctx.kw}\nServiço: ${ctx.service}\nIntenção: ${ctx.intent}\nDiferenciais: ${ctx.diff}\nTom: ${ctx.tone}\nAutor: ${ctx.author} — ${ctx.author_title} — ${ctx.cred}\nPáginas existentes: ${ctx.pages||'Nenhuma'}\nURL GMN: ${ctx.gmn_url||'Não informado'}\nExtras: ${ctx.extra||'Nenhum'}`;
+
+  const prompts={
+    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\n\nGere análise SEO completa em JSON:\n{\n"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"relacoes_lexicais":{"sinonimos":[],"concorrencias":[],"hierarquia":{"hiperonimo":"","hiponimos":[]}},"ngrams":{"bigrams":["3 bigrams"],"trigrams":["3 trigrams"]},"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"linkagens_internas":[],"linkagem_externa":"","imagem_nome":"slug.jpg","imagem_alt":"","prompt_dalle":"prompt em inglês fotorrealista para capa","prompt_gemini":"prompt em inglês para imagem quadrada social media","cluster":{"pagina_pilar":"","tipo":"PILAR ou SECUNDÁRIO","paginas_sugeridas":[{"titulo":"","slug":"","intencao":""}]}}\n\nResponda APENAS com o JSON.`,
+
+    artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n\nESCREVA um artigo completo em HTML semântico seguindo TODAS estas regras:\n\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. FRAMEWORK 5W2H: O quê / Por quê / Quem / Onde / Quando / Como / Quanto\n4. HEADINGS: H2 sempre como perguntas ("Como funciona...?"), bigrams/trigrams nos headings, LSI nos H2/H3\n5. CONVERSACIONAL: parágrafos curtos (máx 3-4 linhas), frases completas, direto ao ponto\n6. SEO RANK MATH 100/100: keyword nos primeiros 10%, density 1-1.5%, keyword em 2+ H2, negrite palavras importantes\n7. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3] onde inserir as 3 imagens\n8. Incluir [LINK INTERNO: âncora → /slug] e [LINK EXTERNO NOFOLLOW: âncora → URL]\n9. 2 CTAs inline com chamada para ação clara\n10. SEM emojis, SEM FAQ, SEM box de autor (será adicionado separado)\n11. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR — cobrir tema com profundidade':'ARTIGO SECUNDÁRIO — focar no subtema e linkar para o pilar'}\n\nAo final, inclua:\n---PROXIMOS---\n3 títulos sugeridos para próximos artigos do cluster\n\nFormate em HTML com tags h1,h2,h3,p,strong,ul,ol,a`,
+
+    gmn:`Crie post para Google Meu Negócio.\n${base}\n\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade/bairro, CTA claro, incluir horários e endereço se disponível, tom local e próximo.\n\nEntregue apenas o texto do post.`,
+
+    instagram:`Crie conteúdo para Instagram.\n${base}\n\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, 1 linha em branco entre parágrafos, sem emojis, CTA ao final, máx 2.200 chars.\n\nAo final, adicione:\n---HASHTAGS---\nGrupo 1 — Nicho (5 hashtags)\nGrupo 2 — Localização (5 hashtags)\nGrupo 3 — Alcance (5 hashtags)`,
+
+    facebook:`Adapte para Facebook.\n${base}\n\nBase: use o mesmo tema do Instagram mas adapte o tom.\nRegras: pode ser um pouco mais longa, incluir URL do artigo ao final, máx 5 hashtags, CTA para comentar/compartilhar/mensagem, sem emojis.\n\nEntregue apenas o texto.`,
+
+    linkedin:`Crie post para LinkedIn.\n${base}\n\nRegras: tom profissional e de autoridade, estrutura gancho→desenvolvimento→insight→CTA, parágrafos curtos, sem emojis, máx 1.300 chars.\n\nEntregue apenas o texto.`,
+  };
+  return prompts[stepId]||'';
+}
+
+// ─── CHAMADAS DE API ──────────────────────────────────────────
+async function generateText(step,ctx,key){
+  const prompt=getPrompt(step.id,ctx);
+  const maxTokens=step.id==='artigo'?4000:1500;
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`)}
+  const data=await resp.json();
+  const text=data.content?.[0]?.text||'';
+  generatedContent[step.id]=text;
+  const preview=text.replace(/<[^>]+>/g,'').slice(0,120).replace(/\n/g,' ')+'...';
+  setResult(step.id,preview);
+  setDone(step.id);
+}
+
+async function generateDalleImage(step,ctx){
+  const key=localStorage.getItem('nd_openai');
+  if(!key)throw new Error('Chave OpenAI não configurada');
+  let prompt=`Professional editorial photography, ${ctx.seg} business in Brazil called "${ctx.biz}", ${ctx.service}, ${ctx.city}. Clean modern aesthetic, natural lighting, photorealistic, no text, no logos. High quality.`;
+  if(generatedContent.analise){
+    try{const a=JSON.parse(generatedContent.analise);if(a.prompt_dalle)prompt=a.prompt_dalle}catch(e){}
+  }
+  const resp=await fetch('https://api.openai.com/v1/images/generations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:'dall-e-3',prompt,n:1,size:'1792x1024',quality:'standard'})
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`)}
+  const data=await resp.json();
+  const url=data.data?.[0]?.url||'';
+  generatedContent['img_capa_url']=url;
+  generatedContent[step.id]=`Imagem gerada. URL temporária (expira em 1h): ${url}`;
+  setResult(step.id,url?'Imagem gerada com sucesso.':'Erro ao obter URL.');
+  setDone(step.id);
+}
+
+async function generateGeminiImage(step,ctx){
+  const key=localStorage.getItem('nd_gemini');
+  if(!key)throw new Error('Chave Gemini não configurada');
+  let prompt=`Square social media image for ${ctx.biz}, ${ctx.seg} business, ${ctx.city} Brazil. Professional, clean, modern style, suitable for Instagram and Facebook, photorealistic, no text overlay.`;
+  if(generatedContent.analise){
+    try{const a=JSON.parse(generatedContent.analise);if(a.prompt_gemini)prompt=a.prompt_gemini}catch(e){}
+  }
+  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${key}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`)}
+  const data=await resp.json();
+  const parts=data.candidates?.[0]?.content?.parts||[];
+  const imgPart=parts.find(p=>p.inlineData);
+  if(imgPart){
+    const b64=imgPart.inlineData.data;
+    const mime=imgPart.inlineData.mimeType||'image/jpeg';
+    generatedContent['img_social_b64']=b64;
+    generatedContent['img_social_mime']=mime;
+    generatedContent[step.id]=`Imagem social gerada (base64 ${mime}).`;
+    setResult(step.id,'Imagem gerada com sucesso.');
+  }else{
+    generatedContent[step.id]='Imagem gerada mas sem dados retornados.';
+    setResult(step.id,'Verifique a chave Gemini e tente novamente.');
+  }
+  setDone(step.id);
+}
+
+// ─── PIPELINE UI ──────────────────────────────────────────────
+function renderPipeline(steps){
+  document.getElementById('pipeline-steps').innerHTML=steps.map(s=>`
+    <div class="pipe-step" id="ps-${s.id}">
+      <div><div class="pipe-num" id="pn-${s.id}">${s.num}</div></div>
+      <div class="pipe-body">
+        <div class="pipe-title">${s.title}</div>
+        <div class="pipe-desc">${s.desc}</div>
+        <div class="pipe-bar" id="pb-${s.id}"><div class="pipe-fill" id="pf-${s.id}"></div></div>
+        <div class="pipe-result" id="pr-${s.id}"></div>
+      </div>
+    </div>`).join('');
+}
+function setRunning(id){
+  document.getElementById('pn-'+id).className='pipe-num running';
+  document.getElementById('pb-'+id).classList.add('show');
+  let w=0;const iv=setInterval(()=>{w=Math.min(w+3,88);document.getElementById('pf-'+id).style.width=w+'%';if(w>=88)clearInterval(iv)},100);
+}
+function setDone(id){
+  const n=document.getElementById('pn-'+id);
+  n.className='pipe-num done';n.textContent='✓';
+  const f=document.getElementById('pf-'+id);if(f)f.style.width='100%';
+}
+function setError(id){
+  const n=document.getElementById('pn-'+id);
+  n.className='pipe-num error';n.textContent='✕';
+}
+function setResult(id,text){
+  const el=document.getElementById('pr-'+id);
+  el.textContent=text;el.classList.add('show');
+}
+
+// ─── RESULTADOS ───────────────────────────────────────────────
+function renderResults(steps){
+  const tabs=document.getElementById('result-tabs');
+  const contents=document.getElementById('result-contents');
+  tabs.innerHTML='';contents.innerHTML='';
+
+  // Metadados SEO
+  let metaHtml='';
+  if(generatedContent.analise){
+    try{
+      const a=JSON.parse(generatedContent.analise);
+      metaHtml=`<div class="meta-box">
+        <strong>Keyword:</strong> ${a.keyword_principal||''} &nbsp;|&nbsp;
+        <strong>Slug:</strong> /${a.slug||''} &nbsp;|&nbsp;
+        <strong>Schema:</strong> ${(a.schema_recomendado||[]).join(', ')}<br>
+        <strong>Título SEO:</strong> ${a.titulo_seo||''}<br>
+        <strong>Meta:</strong> ${a.meta_description||''}<br>
+        <strong>LSI:</strong> ${(a.lsi_terms||[]).join(', ')}
+      </div>`;
+    }catch(e){}
+  }
+  document.getElementById('meta-section').innerHTML=metaHtml;
+
+  const labels={analise:'Análise SEO',artigo:'Artigo',gmn:'GMN',instagram:'Instagram',facebook:'Facebook',linkedin:'LinkedIn',img_capa:'Capa (DALL-E)',img_social:'Social (Gemini)'};
+  let first=true;
+  steps.forEach(s=>{
+    if(!generatedContent[s.id])return;
+    const tab=document.createElement('button');
+    tab.className='rtab'+(first?' active':'');
+    tab.textContent=labels[s.id]||s.id;
+    tab.onclick=()=>{
+      document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.rtab-content').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('rc-'+s.id).classList.add('active');
+    };
+    tabs.appendChild(tab);
+
+    const pane=document.createElement('div');
+    pane.className='rtab-content'+(first?' active':'');
+    pane.id='rc-'+s.id;
+    pane.innerHTML=renderBlock(s.id);
+    contents.appendChild(pane);
+    first=false;
+  });
+}
+
+function renderBlock(id){
+  const text=generatedContent[id]||'';
+  if(id==='img_capa'){
+    const url=generatedContent['img_capa_url'];
+    return`<div class="content-block">
+      <div class="content-block-header"><div class="content-block-title">Imagem de capa — DALL-E 3</div>${url?`<a href="${url}" target="_blank" class="copy-btn">Abrir original</a>`:''}</div>
+      ${url?`<div class="img-preview"><img src="${url}" alt="Capa gerada"></div><div style="font-size:12px;color:var(--text3)">URL expira em 1h. Baixe agora clicando em "Abrir original".</div>`:`<div class="img-preview">Imagem não disponível</div>`}
+    </div>`;
+  }
+  if(id==='img_social'){
+    const b64=generatedContent['img_social_b64'];
+    const mime=generatedContent['img_social_mime']||'image/jpeg';
+    return`<div class="content-block">
+      <div class="content-block-header"><div class="content-block-title">Imagem social — Gemini</div>${b64?`<a href="data:${mime};base64,${b64}" download="social.jpg" class="copy-btn">Baixar imagem</a>`:''}</div>
+      ${b64?`<div class="img-preview"><img src="data:${mime};base64,${b64}" alt="Imagem social"></div>`:`<div class="img-preview">Imagem não disponível</div>`}
+    </div>`;
+  }
+  if(id==='analise'){
+    let formatted=text;
+    try{formatted=JSON.stringify(JSON.parse(text),null,2)}catch(e){}
+    return`<div class="content-block">
+      <div class="content-block-header"><div class="content-block-title">Análise SEO completa</div><button class="copy-btn" onclick="copyText('analise')">Copiar</button></div>
+      <textarea class="content-edit" id="edit-analise" style="font-family:'DM Mono',monospace;font-size:11px;min-height:300px">${esc(formatted)}</textarea>
+    </div>`;
+  }
+  if(id==='artigo'){
+    const score=text.match(/\b(\d{2,3})\/100\b/)?.[1];
+    return`<div class="content-block">
+      <div class="content-block-header">
+        <div>
+          <div class="content-block-title">Artigo completo</div>
+          <div class="seo-row" style="margin-top:6px">
+            ${score?`<span class="seo-badge seo-green">Rank Math ~${score}/100</span>`:''}
+            <span class="seo-badge seo-gold">2.000+ palavras</span>
+            <span class="seo-badge seo-blue">LLM-ready</span>
+          </div>
+        </div>
+        <button class="copy-btn" onclick="copyText('artigo')">Copiar HTML</button>
+      </div>
+      <textarea class="content-edit" id="edit-artigo">${esc(text)}</textarea>
+    </div>`;
+  }
+  return`<div class="content-block">
+    <div class="content-block-header"><div class="content-block-title">${id}</div><button class="copy-btn" onclick="copyText('${id}')">Copiar</button></div>
+    <textarea class="content-edit" id="edit-${id}">${esc(text)}</textarea>
+  </div>`;
+}
+
+function esc(t){return(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ─── COPIAR ───────────────────────────────────────────────────
+function copyText(id){
+  const el=document.getElementById('edit-'+id);
+  const text=el?el.value:generatedContent[id]||'';
+  navigator.clipboard.writeText(text).then(()=>{toast('Copiado!','ok')});
+}
+function copyAllContent(){
+  const all=Object.entries(generatedContent)
+    .filter(([k])=>!k.includes('_url')&&!k.includes('_b64')&&!k.includes('_mime'))
+    .map(([k,v])=>`=== ${k.toUpperCase()} ===\n${v}`)
+    .join('\n\n');
+  navigator.clipboard.writeText(all).then(()=>toast('Tudo copiado!','ok'));
+}
+
+// ─── SALVAR SUPABASE ──────────────────────────────────────────
+async function saveToSupabase(){
+  const spinner=document.getElementById('save-spinner');
+  spinner.style.display='inline-block';
+  const status=document.getElementById('save-status');
+  const ctx=buildContext();
+
+  try{
+    // Buscar ou criar cliente
+    let clienteId=null;
+    const{data:existente}=await sb.from('clientes').select('id').eq('nome_negocio',ctx.biz).single();
+    if(existente){clienteId=existente.id}
+    else{
+      const{data:novo,error:errc}=await sb.from('clientes').insert({
+        nome_negocio:ctx.biz,segmento:ctx.seg,cidade:ctx.city,
+        plataformas:[...activePlats],ativo:true
+      }).select('id').single();
+      if(errc)throw new Error(errc.message);
+      clienteId=novo.id;
+    }
+
+    // Criar semana
+    const hoje=new Date();
+    const seg=getMonday(hoje);
+    const dom=new Date(seg);dom.setDate(dom.getDate()+6);
+    const{data:semana,error:errs}=await sb.from('semanas').insert({
+      cliente_id:clienteId,
+      semana_inicio:seg.toISOString().split('T')[0],
+      semana_fim:dom.toISOString().split('T')[0],
+      status:'aguardando_aprovacao'
+    }).select('id').single();
+    if(errs)throw new Error(errs.message);
+    const semanaId=semana.id;
+
+    // Parsear análise
+    let analise={};
+    try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
+
+    // Salvar posts
+    const postMap={
+      artigo:{tipo:'blog'},gmn:{tipo:'gmn'},
+      instagram:{tipo:'instagram'},facebook:{tipo:'facebook'},linkedin:{tipo:'linkedin'}
+    };
+    for(const[key,cfg]of Object.entries(postMap)){
+      if(!generatedContent[key])continue;
+      const editEl=document.getElementById('edit-'+key);
+      const corpo=editEl?editEl.value:generatedContent[key];
+      await sb.from('postagens').insert({
+        semana_id:semanaId,cliente_id:clienteId,
+        tipo:cfg.tipo,corpo,
+        titulo:analise.titulo_seo||'',
+        meta_desc:analise.meta_description||'',
+        slug:analise.slug||'',
+        seo_score:98,
+        palavras_chave:[ctx.kw,...(analise.lsi_terms||[])],
+        imagem_url_externa:generatedContent['img_capa_url']||'',
+        status:'pendente'
+      });
+    }
+
+    // Salvar histórico local
+    saveToHistory(ctx,semanaId);
+
+    spinner.style.display='none';
+    status.innerHTML=`<div class="status-bar success">✓ Salvo com sucesso! Semana ID: <strong style="font-family:'DM Mono',monospace">${semanaId.slice(0,8)}...</strong></div>`;
+    toast('Salvo no Supabase!','ok');
+
+  }catch(e){
+    spinner.style.display='none';
+    status.innerHTML=`<div class="status-bar error">Erro ao salvar: ${e.message}</div>`;
+    toast('Erro ao salvar','err');
+  }
+}
+
+// ─── HISTÓRICO ────────────────────────────────────────────────
+function saveToHistory(ctx,semanaId){
+  const h=JSON.parse(localStorage.getItem('nd_history')||'[]');
+  h.unshift({id:Date.now(),biz:ctx.biz,kw:ctx.kw,date:new Date().toLocaleDateString('pt-BR'),plats:[...activePlats],semanaId});
+  localStorage.setItem('nd_history',JSON.stringify(h.slice(0,50)));
+}
+function renderHistory(){
+  const h=JSON.parse(localStorage.getItem('nd_history')||'[]');
+  const el=document.getElementById('history-list');
+  if(!h.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px 0">Nenhum conteúdo gerado ainda.</div>';return}
+  el.innerHTML=h.map(i=>`<div class="hist-item"><div class="hist-dot"></div><div class="hist-info"><div class="hist-name">${i.biz}</div><div class="hist-meta">${i.kw} · ${i.date} · ${(i.plats||[]).join(', ')}</div></div><span class="hist-badge">Gerado</span></div>`).join('');
+}
+
+function resetForm(){
+  document.getElementById('form-section').style.display='block';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('pipeline-section').style.display='none';
+  generatedContent={};
+  document.getElementById('meta-section').innerHTML='';
+}
+
+function getMonday(d){const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);return new Date(new Date(d).setDate(diff))}
+
+// ─── TOAST ────────────────────────────────────────────────────
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  setTimeout(()=>t.classList.add('show'),10);
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
