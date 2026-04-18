@@ -538,7 +538,7 @@ async function generateText(step,ctx,key){
   const resp=await fetch(PROXY_BASE+'/proxy-anthropic',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'},
-    body:JSON.stringify({messages:[{role:'user',content:prompt}],max_tokens:maxTokens,model:'claude-sonnet-4-20250514',anthropic_key:key})
+    body:JSON.stringify({messages:[{role:'user',content:prompt}],max_tokens:maxTokens,model:'claude-haiku-4-5-20251001',anthropic_key:key})
   });
   if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`)}
   const data=await resp.json();
