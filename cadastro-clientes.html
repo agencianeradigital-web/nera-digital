@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clientes — Nera Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f9;--surface:#fff;--surface2:#f0f1f8;--surface3:#e8eaf4;
+  --border:#e0e2f0;--border2:#c8cae8;
+  --text:#1a1060;--text2:#4a4a7a;--text3:#8888aa;
+  --accent:#5B5BD6;--accent2:#4848b8;
+  --accent-dim:rgba(91,91,214,.08);--accent-dim2:rgba(91,91,214,.16);
+  --gold:#F5A623;--gold-dim:rgba(245,166,35,.12);
+  --red:#e03030;--red-dim:rgba(224,48,48,.08);
+  --green:#1a9e5a;--green-dim:rgba(26,158,90,.1);
+  --radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff}
+.logo-name{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3)}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 6px;padding:0 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.nav-item.active .nav-dot{opacity:1}
+
+/* MAIN */
+.main{padding:36px 40px;overflow-y:auto}
+
+/* HEADER */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.page-title{font-size:22px;font-weight:600}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:4px}
+.stat-value{font-size:22px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+
+/* TABELA */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--surface2)}
+.tbl td.name{color:var(--text);font-weight:500}
+.tbl-empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.badge-pj{background:var(--accent-dim);color:var(--accent)}
+.badge-pf{background:var(--gold-dim);color:var(--gold)}
+.badge-ativo{background:var(--green-dim);color:var(--green)}
+.badge-inativo{background:var(--red-dim);color:var(--red)}
+
+/* FORM */
+.form-wrap{display:none}
+.form-wrap.show{display:block}
+.section-title{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.field label .req{color:var(--red);margin-left:2px}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim2)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5}
+.field input::placeholder,.field textarea::placeholder{color:var(--text3)}
+.field input:disabled{opacity:.5;cursor:not-allowed}
+.field-loading{position:relative}
+.field-loading::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:none}
+.field-loading.loading::after{display:block}
+
+/* TIPO TOGGLE */
+.tipo-toggle{display:flex;gap:8px;margin-bottom:20px}
+.tipo-btn{flex:1;padding:10px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;text-align:center}
+.tipo-btn:hover{border-color:var(--border2);color:var(--text)}
+.tipo-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red-dim)}
+.btn-danger:hover{background:var(--red-dim)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;font-size:15px}
+
+/* STATUS */
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px}
+.status-bar.success{background:var(--green-dim);color:var(--green);border:1px solid rgba(26,158,90,.2)}
+.status-bar.error{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,48,48,.2)}
+.status-bar.info{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(91,91,214,.2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,16,96,.3);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:760px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(26,16,96,.15)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:18px;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{background:var(--surface2);color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* SPINNER */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(91,91,214,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+/* SEARCH */
+.search-wrap{position:relative}
+.search-wrap input{padding-left:36px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+
+/* AVATAR */
+.client-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+
+/* PLAT CHECKS */
+.plat-checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.plat-check{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;user-select:none}
+.plat-check:hover{border-color:var(--border2)}
+.plat-check.on{border-color:rgba(91,91,214,.4);background:var(--accent-dim)}
+.plat-check input{display:none}
+.plat-check-icon{font-size:16px;flex-shrink:0}
+.plat-check-name{font-size:12px;font-weight:500;color:var(--text2)}
+.plat-check.on .plat-check-name{color:var(--accent)}
+
+/* HINT */
+.hint{font-size:11px;color:var(--text3);margin-top:4px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <div>
+      <div class="logo-name">Nera Digital</div>
+      <div class="logo-sub">Gestão de clientes</div>
+    </div>
+  </div>
+  <div class="nav-label">Menu</div>
+  <div class="nav-item" onclick="window.location='index.html'"><div class="nav-dot"></div>Gerar conteúdo</div>
+  <div class="nav-item active"><div class="nav-dot"></div>Clientes</div>
+  <div class="nav-item" onclick="window.location='painel-agencia.html'"><div class="nav-dot"></div>Painel</div>
+  <div class="nav-label" style="margin-top:20px">Sistema</div>
+  <div class="nav-item" onclick="window.location='index.html#config'"><div class="nav-dot"></div>Configurações</div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Clientes</div>
+      <div class="page-sub">Gerencie todos os clientes da agência</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()">+ Novo cliente</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total de clientes</div><div class="stat-value" id="stat-total">0</div><div class="stat-sub">cadastrados</div></div>
+    <div class="stat"><div class="stat-label">Clientes ativos</div><div class="stat-value" id="stat-ativos">0</div><div class="stat-sub">em operação</div></div>
+    <div class="stat"><div class="stat-label">Pessoas jurídicas</div><div class="stat-value" id="stat-pj">0</div><div class="stat-sub">empresas</div></div>
+    <div class="stat"><div class="stat-label">Pessoas físicas</div><div class="stat-value" id="stat-pf">0</div><div class="stat-sub">profissionais</div></div>
+  </div>
+
+  <!-- LISTAGEM -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Todos os clientes</div>
+      <div class="search-wrap" style="width:240px">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" placeholder="Buscar cliente..." oninput="filterClientes()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px 7px 36px;font-size:13px;color:var(--text);outline:none">
+      </div>
+    </div>
+    <div id="status-list"></div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Segmento</th>
+            <th>Cidade</th>
+            <th>Contato</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="clientes-tbody">
+          <tr><td colspan="7" class="tbl-empty">Carregando clientes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- MODAL CADASTRO -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Novo cliente</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="form-status"></div>
+
+      <!-- TIPO PF/PJ -->
+      <div class="tipo-toggle">
+        <div class="tipo-btn active" id="btn-pj" onclick="setTipo('PJ')">🏢 Pessoa Jurídica</div>
+        <div class="tipo-btn" id="btn-pf" onclick="setTipo('PF')">👤 Pessoa Física</div>
+      </div>
+
+      <!-- BLOCO PJ -->
+      <div id="bloco-pj">
+        <div class="section-title">Dados da empresa</div>
+        <div class="grid2">
+          <div class="field field-loading" id="wrap-cnpj">
+            <label>CNPJ <span class="req">*</span></label>
+            <input type="text" id="cnpj" placeholder="00.000.000/0001-00" maxlength="18" oninput="maskCNPJ(this);consultarCNPJ()">
+            <div class="hint">Preencha o CNPJ para buscar dados automaticamente</div>
+          </div>
+          <div class="field">
+            <label>Razão social <span class="req">*</span></label>
+            <input type="text" id="razao_social" placeholder="Nome da empresa">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Nome fantasia</label>
+            <input type="text" id="nome_fantasia" placeholder="Nome comercial">
+          </div>
+          <div class="field">
+            <label>Inscrição estadual</label>
+            <input type="text" id="ie" placeholder="000.000.000.000">
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCO PF -->
+      <div id="bloco-pf" style="display:none">
+        <div class="section-title">Dados pessoais</div>
+        <div class="grid2">
+          <div class="field">
+            <label>CPF <span class="req">*</span></label>
+            <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
+          </div>
+          <div class="field">
+            <label>RG</label>
+            <input type="text" id="rg" placeholder="00.000.000-0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Nome completo <span class="req">*</span></label>
+          <input type="text" id="nome_pf" placeholder="Nome completo">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- DADOS DO NEGÓCIO -->
+      <div class="section-title">Dados do negócio</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Nome do negócio <span class="req">*</span></label>
+          <input type="text" id="nome_negocio" placeholder="Como o cliente é conhecido">
+        </div>
+        <div class="field">
+          <label>Segmento <span class="req">*</span></label>
+          <select id="segmento">
+            <option value="">Selecione...</option>
+            <option>Saúde e bem-estar</option><option>Odontologia</option>
+            <option>Alimentação e gastronomia</option><option>Beleza e estética</option>
+            <option>Direito e jurídico</option><option>Construção e reforma</option>
+            <option>Educação</option><option>Varejo</option><option>Serviços</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Site</label>
+          <input type="text" id="site" placeholder="https://exemplo.com.br">
+        </div>
+        <div class="field">
+          <label>E-mail comercial <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="contato@empresa.com.br">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Telefone / WhatsApp <span class="req">*</span></label>
+          <input type="text" id="telefone" placeholder="(11) 99999-0000" maxlength="15" oninput="maskTel(this)">
+        </div>
+        <div class="field">
+          <label>Horário de atendimento</label>
+          <input type="text" id="horario" placeholder="Ex: Seg-Sex 8h-18h, Sáb 8h-12h">
+        </div>
+      </div>
+      <div class="field">
+        <label>Diferenciais do negócio</label>
+        <textarea id="diferenciais" placeholder="Ex: Atendimento 24h, convênios aceitos, especialista certificado, 15 anos de experiência..."></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- RESPONSÁVEL PJ -->
+      <div id="bloco-responsavel">
+        <div class="section-title">Responsável (pessoa física)</div>
+        <div class="grid2">
+          <div class="field">
+            <label>Nome completo <span class="req">*</span></label>
+            <input type="text" id="resp_nome" placeholder="Nome do responsável">
+          </div>
+          <div class="field">
+            <label>Cargo</label>
+            <input type="text" id="resp_cargo" placeholder="Ex: Diretor, Sócio, Gerente">
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="field">
+            <label>CPF <span class="req">*</span></label>
+            <input type="text" id="resp_cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
+          </div>
+          <div class="field">
+            <label>RG</label>
+            <input type="text" id="resp_rg" placeholder="00.000.000-0">
+          </div>
+          <div class="field">
+            <label>Data de nascimento</label>
+            <input type="date" id="resp_nascimento">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>E-mail <span class="req">*</span></label>
+            <input type="email" id="resp_email" placeholder="responsavel@empresa.com.br">
+          </div>
+          <div class="field">
+            <label>Telefone / WhatsApp <span class="req">*</span></label>
+            <input type="text" id="resp_tel" placeholder="(11) 99999-0000" maxlength="15" oninput="maskTel(this)">
+          </div>
+        </div>
+        <div class="divider"></div>
+      </div>
+
+      <!-- ENDEREÇO -->
+      <div class="section-title">Endereço</div>
+      <div class="grid2">
+        <div class="field field-loading" id="wrap-cep">
+          <label>CEP</label>
+          <input type="text" id="cep" placeholder="00000-000" maxlength="9" oninput="maskCEP(this);consultarCEP()">
+          <div class="hint">Preencha o CEP para buscar o endereço</div>
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <input type="text" id="estado" placeholder="SP">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Cidade</label>
+          <input type="text" id="cidade" placeholder="São Paulo">
+        </div>
+        <div class="field">
+          <label>Bairro</label>
+          <input type="text" id="bairro" placeholder="Centro">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Logradouro</label>
+          <input type="text" id="logradouro" placeholder="Rua, Av., Alameda...">
+        </div>
+        <div class="field">
+          <label>Número</label>
+          <input type="text" id="numero" placeholder="123">
+        </div>
+      </div>
+      <div class="field">
+        <label>Complemento</label>
+        <input type="text" id="complemento" placeholder="Sala 10, Andar 2...">
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- REDES SOCIAIS -->
+      <div class="section-title">Redes sociais e presença digital</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Instagram</label>
+          <input type="text" id="instagram" placeholder="@usuario ou URL completa">
+        </div>
+        <div class="field">
+          <label>Facebook</label>
+          <input type="text" id="facebook" placeholder="@pagina ou URL completa">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>LinkedIn</label>
+          <input type="text" id="linkedin" placeholder="URL do perfil ou página">
+        </div>
+        <div class="field">
+          <label>YouTube</label>
+          <input type="text" id="youtube" placeholder="URL do canal">
+        </div>
+      </div>
+      <div class="field">
+        <label>Google Meu Negócio (URL)</label>
+        <input type="text" id="gmn_url" placeholder="https://maps.google.com/...">
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- SEO -->
+      <div class="section-title">Dados para SEO e conteúdo</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Tom de voz padrão</label>
+          <select id="tom_voz">
+            <option>Profissional e confiável</option>
+            <option>Descontraído e próximo</option>
+            <option>Sofisticado e premium</option>
+            <option>Educativo e didático</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status do cliente</label>
+          <select id="status_cliente">
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="prospecto">Prospecto</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Plataformas ativas</label>
+        <div class="plat-checks">
+          <label class="plat-check on" id="pc-blog"><input type="checkbox" value="blog" checked onchange="togglePlatCheck(this)"><span class="plat-check-icon">📝</span><span class="plat-check-name">Blog WordPress</span></label>
+          <label class="plat-check on" id="pc-gmn"><input type="checkbox" value="gmn" checked onchange="togglePlatCheck(this)"><span class="plat-check-icon">📍</span><span class="plat-check-name">Google Meu Negócio</span></label>
+          <label class="plat-check on" id="pc-instagram"><input type="checkbox" value="instagram" checked onchange="togglePlatCheck(this)"><span class="plat-check-icon">📸</span><span class="plat-check-name">Instagram</span></label>
+          <label class="plat-check on" id="pc-facebook"><input type="checkbox" value="facebook" checked onchange="togglePlatCheck(this)"><span class="plat-check-icon">📘</span><span class="plat-check-name">Facebook</span></label>
+          <label class="plat-check" id="pc-linkedin"><input type="checkbox" value="linkedin" onchange="togglePlatCheck(this)"><span class="plat-check-icon">💼</span><span class="plat-check-name">LinkedIn</span></label>
+          <label class="plat-check" id="pc-youtube"><input type="checkbox" value="youtube" onchange="togglePlatCheck(this)"><span class="plat-check-icon">▶️</span><span class="plat-check-name">YouTube</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Páginas existentes no site (para linkagem interna)</label>
+        <input type="text" id="paginas_site" placeholder="Ex: /sobre, /servicos, /contato (separadas por vírgula)">
+      </div>
+      <div class="field">
+        <label>Palavras-chave principais</label>
+        <input type="text" id="keywords" placeholder="Ex: dentista em campinas, implante dentário sp">
+        <div class="hint">Separadas por vírgula</div>
+      </div>
+      <div class="field">
+        <label>Autor / Especialista do conteúdo</label>
+        <input type="text" id="autor_nome" placeholder="Ex: Dr. Carlos Ferreira — CRO-SP 12345">
+      </div>
+      <div class="field">
+        <label>Bio do autor</label>
+        <textarea id="autor_bio" placeholder="Bio curta para aparecer nos artigos..." style="min-height:60px"></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- CONTRATO -->
+      <div class="section-title">Informações contratuais</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Data de início</label>
+          <input type="date" id="data_inicio">
+        </div>
+        <div class="field">
+          <label>Dia de vencimento</label>
+          <input type="number" id="dia_vencimento" placeholder="10" min="1" max="31">
+        </div>
+      </div>
+      <div class="field">
+        <label>Observações internas</label>
+        <textarea id="observacoes" placeholder="Notas internas sobre o cliente..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar" onclick="salvarCliente()">
+        <span class="spinner" id="save-spinner" style="display:none"></span>
+        Salvar cliente
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SUPABASE ─────────────────────────────────────────────────
+const sb=supabase.createClient(
+  'https://dcsxhdqwdoxbwgokzlea.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'
+);
+
+let clientes=[];
+let editingId=null;
+let tipoAtual='PJ';
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.onload=()=>loadClientes();
+
+// ─── CARREGAR ─────────────────────────────────────────────────
+async function loadClientes(){
+  const{data,error}=await sb.from('clientes').select('*').order('created_at',{ascending:false});
+  if(error){document.getElementById('status-list').innerHTML=`<div class="status-bar error">Erro ao carregar: ${error.message}</div>`;return}
+  clientes=data||[];
+  renderStats();
+  renderTabela(clientes);
+}
+
+function renderStats(){
+  document.getElementById('stat-total').textContent=clientes.length;
+  document.getElementById('stat-ativos').textContent=clientes.filter(c=>c.ativo!==false&&c.status_cliente!=='inativo').length;
+  document.getElementById('stat-pj').textContent=clientes.filter(c=>c.tipo_pessoa==='PJ').length;
+  document.getElementById('stat-pf').textContent=clientes.filter(c=>c.tipo_pessoa==='PF').length;
+}
+
+function renderTabela(lista){
+  const tbody=document.getElementById('clientes-tbody');
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="7" class="tbl-empty">Nenhum cliente cadastrado ainda.</td></tr>';return}
+  tbody.innerHTML=lista.map(c=>{
+    const initials=(c.nome_negocio||'?').slice(0,2).toUpperCase();
+    const statusBadge=c.status_cliente==='inativo'?'<span class="badge badge-inativo">Inativo</span>':'<span class="badge badge-ativo">Ativo</span>';
+    const tipoBadge=c.tipo_pessoa==='PJ'?'<span class="badge badge-pj">PJ</span>':'<span class="badge badge-pf">PF</span>';
+    return`<tr>
+      <td class="name"><div style="display:flex;align-items:center;gap:10px"><div class="client-avatar">${initials}</div><div><div>${c.nome_negocio||'—'}</div><div style="font-size:11px;color:var(--text3)">${c.cnpj||c.cpf||'—'}</div></div></div></td>
+      <td>${tipoBadge}</td>
+      <td>${c.segmento||'—'}</td>
+      <td>${c.cidade||'—'}</td>
+      <td><div style="font-size:12px">${c.email||'—'}</div><div style="font-size:11px;color:var(--text3)">${c.telefone||''}</div></td>
+      <td>${statusBadge}</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="editarCliente('${c.id}')" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="window.location='index.html?cliente=${c.id}'" title="Gerar conteúdo">✨</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterClientes(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const filtered=clientes.filter(c=>(c.nome_negocio||'').toLowerCase().includes(q)||(c.segmento||'').toLowerCase().includes(q)||(c.cidade||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q));
+  renderTabela(filtered);
+}
+
+// ─── MODAL ────────────────────────────────────────────────────
+function openModal(id=null){
+  editingId=id;
+  document.getElementById('modal-title').textContent=id?'Editar cliente':'Novo cliente';
+  document.getElementById('form-status').innerHTML='';
+  if(!id)resetForm();
+  document.getElementById('modal').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  document.body.style.overflow='';
+  editingId=null;
+}
+
+function resetForm(){
+  ['cnpj','razao_social','nome_fantasia','ie','cpf','rg','nome_pf',
+   'nome_negocio','segmento','site','email','telefone','horario','diferenciais',
+   'resp_nome','resp_cargo','resp_cpf','resp_rg','resp_email','resp_tel',
+   'cep','estado','cidade','bairro','logradouro','numero','complemento',
+   'instagram','facebook','linkedin','youtube','gmn_url',
+   'paginas_site','keywords','autor_nome','autor_bio',
+   'dia_vencimento','observacoes'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  document.getElementById('resp_nascimento').value='';
+  document.getElementById('data_inicio').value=new Date().toISOString().split('T')[0];
+  document.getElementById('status_cliente').value='ativo';
+  document.getElementById('tom_voz').value='Profissional e confiável';
+  setPlataformas(['blog','gmn','instagram','facebook']);
+  setTipo('PJ');
+}
+
+// ─── PLATAFORMAS CHECKBOXES ───────────────────────────────────
+function togglePlatCheck(cb){
+  cb.closest('.plat-check').classList.toggle('on',cb.checked);
+}
+function getPlataformas(){
+  return Array.from(document.querySelectorAll('.plat-check input:checked')).map(cb=>cb.value);
+}
+function setPlataformas(plats){
+  document.querySelectorAll('.plat-check').forEach(label=>{
+    const cb=label.querySelector('input');
+    const on=!!(plats&&plats.includes(cb.value));
+    cb.checked=on;
+    label.classList.toggle('on',on);
+  });
+}
+
+// ─── TIPO PF/PJ ───────────────────────────────────────────────
+function setTipo(tipo){
+  tipoAtual=tipo;
+  document.getElementById('btn-pj').classList.toggle('active',tipo==='PJ');
+  document.getElementById('btn-pf').classList.toggle('active',tipo==='PF');
+  document.getElementById('bloco-pj').style.display=tipo==='PJ'?'block':'none';
+  document.getElementById('bloco-pf').style.display=tipo==='PF'?'block':'none';
+  document.getElementById('bloco-responsavel').style.display=tipo==='PJ'?'block':'none';
+}
+
+// ─── MÁSCARAS ─────────────────────────────────────────────────
+function maskCNPJ(el){
+  let v=el.value.replace(/\D/g,'');
+  v=v.replace(/^(\d{2})(\d)/,'$1.$2');
+  v=v.replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3');
+  v=v.replace(/\.(\d{3})(\d)/,'.$1/$2');
+  v=v.replace(/(\d{4})(\d)/,'$1-$2');
+  el.value=v;
+}
+function maskCPF(el){
+  let v=el.value.replace(/\D/g,'');
+  v=v.replace(/(\d{3})(\d)/,'$1.$2');
+  v=v.replace(/(\d{3})(\d)/,'$1.$2');
+  v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  el.value=v;
+}
+function maskCEP(el){
+  let v=el.value.replace(/\D/g,'');
+  v=v.replace(/(\d{5})(\d)/,'$1-$2');
+  el.value=v;
+}
+function maskTel(el){
+  let v=el.value.replace(/\D/g,'');
+  if(v.length<=10)v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');
+  else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');
+  el.value=v.trim().replace(/-$/,'');
+}
+
+// ─── CONSULTA CNPJ ────────────────────────────────────────────
+let cnpjTimer=null;
+async function consultarCNPJ(){
+  const cnpj=document.getElementById('cnpj').value.replace(/\D/g,'');
+  if(cnpj.length!==14)return;
+  clearTimeout(cnpjTimer);
+  cnpjTimer=setTimeout(async()=>{
+    document.getElementById('wrap-cnpj').classList.add('loading');
+    try{
+      const r=await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if(!r.ok)throw new Error('CNPJ não encontrado');
+      const d=await r.json();
+      document.getElementById('razao_social').value=d.razao_social||'';
+      document.getElementById('nome_fantasia').value=d.nome_fantasia||'';
+      if(!document.getElementById('nome_negocio').value)
+        document.getElementById('nome_negocio').value=d.nome_fantasia||d.razao_social||'';
+      document.getElementById('email').value=d.email||'';
+      document.getElementById('telefone').value=d.ddd_telefone_1?(formatTel(d.ddd_telefone_1)):'';
+      if(d.cep){
+        const cepNum=d.cep.replace(/\D/g,'');
+        document.getElementById('cep').value=cepNum.slice(0,5)+'-'+cepNum.slice(5);
+        await consultarCEPDireto(cepNum);
+      }
+      if(d.numero)document.getElementById('numero').value=d.numero;
+      if(d.complemento)document.getElementById('complemento').value=d.complemento;
+      toast('Dados do CNPJ preenchidos automaticamente!','ok');
+    }catch(e){toast('CNPJ não encontrado ou inválido','err')}
+    finally{document.getElementById('wrap-cnpj').classList.remove('loading')}
+  },800);
+}
+
+function formatTel(tel){
+  const n=tel.replace(/\D/g,'');
+  if(n.length>=10)return`(${n.slice(0,2)}) ${n.slice(2,n.length-4)}-${n.slice(-4)}`;
+  return tel;
+}
+
+// ─── CONSULTA CEP ─────────────────────────────────────────────
+let cepTimer=null;
+async function consultarCEP(){
+  const cep=document.getElementById('cep').value.replace(/\D/g,'');
+  if(cep.length!==8)return;
+  clearTimeout(cepTimer);
+  cepTimer=setTimeout(()=>consultarCEPDireto(cep),600);
+}
+
+async function consultarCEPDireto(cep){
+  document.getElementById('wrap-cep').classList.add('loading');
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d=await r.json();
+    if(d.erro)throw new Error('CEP não encontrado');
+    document.getElementById('logradouro').value=d.logradouro||'';
+    document.getElementById('bairro').value=d.bairro||'';
+    document.getElementById('cidade').value=d.localidade||'';
+    document.getElementById('estado').value=d.uf||'';
+    document.getElementById('numero').focus();
+    toast('Endereço preenchido automaticamente!','ok');
+  }catch(e){toast('CEP não encontrado','err')}
+  finally{document.getElementById('wrap-cep').classList.remove('loading')}
+}
+
+// ─── SALVAR ───────────────────────────────────────────────────
+async function salvarCliente(){
+  const spinner=document.getElementById('save-spinner');
+  const btn=document.getElementById('btn-salvar');
+  spinner.style.display='inline-block';
+  btn.disabled=true;
+
+  // Validação
+  const nome=document.getElementById('nome_negocio').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const tel=document.getElementById('telefone').value.trim();
+  if(!nome||!email||!tel){
+    document.getElementById('form-status').innerHTML='<div class="status-bar error">Preencha os campos obrigatórios: Nome do negócio, E-mail e Telefone.</div>';
+    spinner.style.display='none';btn.disabled=false;return;
+  }
+
+  // Coletar plataformas
+  const plats=getPlataformas();
+
+  const payload={
+    tipo_pessoa:tipoAtual,
+    // PJ
+    cnpj:document.getElementById('cnpj').value||null,
+    razao_social:document.getElementById('razao_social').value||null,
+    nome_fantasia:document.getElementById('nome_fantasia').value||null,
+    inscricao_estadual:document.getElementById('ie').value||null,
+    // PF
+    cpf_pf:document.getElementById('cpf').value||null,
+    rg_pf:document.getElementById('rg').value||null,
+    nome_pf:document.getElementById('nome_pf').value||null,
+    // Negócio
+    nome_negocio:nome,
+    segmento:document.getElementById('segmento').value||null,
+    site:document.getElementById('site').value||null,
+    email,
+    telefone:tel,
+    horario_atendimento:document.getElementById('horario').value||null,
+    diferenciais:document.getElementById('diferenciais').value||null,
+    // Responsável
+    responsavel:document.getElementById('resp_nome').value||nome,
+    responsavel_cargo:document.getElementById('resp_cargo').value||null,
+    responsavel_cpf:document.getElementById('resp_cpf').value||null,
+    responsavel_rg:document.getElementById('resp_rg').value||null,
+    responsavel_nascimento:document.getElementById('resp_nascimento').value||null,
+    responsavel_email:document.getElementById('resp_email').value||null,
+    responsavel_tel:document.getElementById('resp_tel').value||null,
+    // Endereço
+    cep:document.getElementById('cep').value||null,
+    estado:document.getElementById('estado').value||null,
+    cidade:document.getElementById('cidade').value||null,
+    bairro:document.getElementById('bairro').value||null,
+    logradouro:document.getElementById('logradouro').value||null,
+    numero:document.getElementById('numero').value||null,
+    complemento:document.getElementById('complemento').value||null,
+    // Redes sociais
+    instagram:document.getElementById('instagram').value||null,
+    facebook:document.getElementById('facebook').value||null,
+    linkedin_url:document.getElementById('linkedin').value||null,
+    youtube:document.getElementById('youtube').value||null,
+    gmn_url:document.getElementById('gmn_url').value||null,
+    // SEO
+    tom_voz:document.getElementById('tom_voz').value,
+    plataformas:plats,
+    paginas_site:document.getElementById('paginas_site').value||null,
+    palavras_chave:document.getElementById('keywords').value||null,
+    autor_nome:document.getElementById('autor_nome').value||null,
+    autor_bio:document.getElementById('autor_bio').value||null,
+    // Contrato
+    data_inicio:document.getElementById('data_inicio').value||null,
+    dia_vencimento:parseInt(document.getElementById('dia_vencimento').value)||null,
+    status_cliente:document.getElementById('status_cliente').value,
+    observacoes:document.getElementById('observacoes').value||null,
+    ativo:document.getElementById('status_cliente').value==='ativo',
+  };
+
+  try{
+    let error;
+    if(editingId){
+      ({error}=await sb.from('clientes').update(payload).eq('id',editingId));
+    }else{
+      ({error}=await sb.from('clientes').insert(payload));
+    }
+    if(error)throw new Error(error.message);
+    toast(editingId?'Cliente atualizado!':'Cliente cadastrado!','ok');
+    closeModal();
+    loadClientes();
+  }catch(e){
+    document.getElementById('form-status').innerHTML=`<div class="status-bar error">Erro ao salvar: ${e.message}</div>`;
+  }finally{
+    spinner.style.display='none';btn.disabled=false;
+  }
+}
+
+// ─── EDITAR ───────────────────────────────────────────────────
+async function editarCliente(id){
+  const{data,error}=await sb.from('clientes').select('*').eq('id',id).single();
+  if(error){toast('Erro ao carregar cliente','err');return}
+  openModal(id);
+  setTimeout(()=>{
+    setTipo(data.tipo_pessoa||'PJ');
+    const set=(elId,val)=>{const el=document.getElementById(elId);if(el&&val!=null)el.value=val};
+    set('cnpj',data.cnpj);set('razao_social',data.razao_social);set('nome_fantasia',data.nome_fantasia);set('ie',data.inscricao_estadual);
+    set('cpf',data.cpf_pf);set('rg',data.rg_pf);set('nome_pf',data.nome_pf);
+    set('nome_negocio',data.nome_negocio);set('segmento',data.segmento);set('site',data.site);set('email',data.email);
+    set('telefone',data.telefone);set('horario',data.horario_atendimento);set('diferenciais',data.diferenciais);
+    set('resp_nome',data.responsavel);set('resp_cargo',data.responsavel_cargo);set('resp_cpf',data.responsavel_cpf);
+    set('resp_rg',data.responsavel_rg);set('resp_nascimento',data.responsavel_nascimento);
+    set('resp_email',data.responsavel_email);set('resp_tel',data.responsavel_tel);
+    set('cep',data.cep);set('estado',data.estado);set('cidade',data.cidade);set('bairro',data.bairro);
+    set('logradouro',data.logradouro);set('numero',data.numero);set('complemento',data.complemento);
+    set('instagram',data.instagram);set('facebook',data.facebook);set('linkedin',data.linkedin_url);
+    set('youtube',data.youtube);set('gmn_url',data.gmn_url);
+    set('tom_voz',data.tom_voz);set('paginas_site',data.paginas_site);set('keywords',data.palavras_chave);
+    set('autor_nome',data.autor_nome);set('autor_bio',data.autor_bio);
+    set('data_inicio',data.data_inicio);set('dia_vencimento',data.dia_vencimento);
+    set('status_cliente',data.status_cliente||'ativo');set('observacoes',data.observacoes);
+    // Plataformas
+    if(data.plataformas) setPlataformas(data.plataformas);
+  },100);
+}
+
+// ─── TOAST ────────────────────────────────────────────────────
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  setTimeout(()=>t.classList.add('show'),10);
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// Fechar modal clicando fora
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal'))closeModal();
+});
+</script>
+</body>
+</html>
