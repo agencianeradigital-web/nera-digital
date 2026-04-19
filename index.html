@@ -514,17 +514,17 @@ function getPrompt(stepId,ctx){
   const base=`Empresa: ${ctx.biz}\nSegmento: ${ctx.seg}\nCidade: ${ctx.city}\nPalavra-chave: ${ctx.kw}\nServiço: ${ctx.service}\nIntenção: ${ctx.intent}\nDiferenciais: ${ctx.diff}\nTom: ${ctx.tone}\nAutor: ${ctx.author} — ${ctx.author_title} — ${ctx.cred}\nPáginas existentes: ${ctx.pages||'Nenhuma'}\nURL GMN: ${ctx.gmn_url||'Não informado'}\nExtras: ${ctx.extra||'Nenhum'}`;
 
   const prompts={
-    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\n\nGere análise SEO completa em JSON:\n{\n"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"relacoes_lexicais":{"sinonimos":[],"concorrencias":[],"hierarquia":{"hiperonimo":"","hiponimos":[]}},"ngrams":{"bigrams":["3 bigrams"],"trigrams":["3 trigrams"]},"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"linkagens_internas":[],"linkagem_externa":"","imagem_nome":"slug.jpg","imagem_alt":"","prompt_dalle":"prompt em inglês fotorrealista para capa","prompt_gemini":"prompt em inglês para imagem quadrada social media","cluster":{"pagina_pilar":"","tipo":"PILAR ou SECUNDÁRIO","paginas_sugeridas":[{"titulo":"","slug":"","intencao":""}]}}\n\nResponda APENAS com o JSON.`,
+    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\n\nGere análise SEO completa em JSON:\n{\n"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"relacoes_lexicais":{"sinonimos":[],"concorrencias":[],"hierarquia":{"hiperonimo":"","hiponimos":[]}},"ngrams":{"bigrams":["3 bigrams"],"trigrams":["3 trigrams"]},"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"linkagens_internas":[],"linkagem_externa":"","imagem_nome":"slug.jpg","imagem_alt":"descrição em português com keyword","prompt_dalle":"prompt em PORTUGUÊS descrevendo imagem fotorrealista profissional para capa do artigo, sem texto, sem logo","prompt_gemini":"prompt em PORTUGUÊS descrevendo imagem quadrada profissional para redes sociais, sem texto sobreposto","cluster":{"pagina_pilar":"","tipo":"PILAR ou SECUNDÁRIO","paginas_sugeridas":[{"titulo":"","slug":"","intencao":""}]}}\n\nResponda APENAS com o JSON.`,
 
-    artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n\nESCREVA um artigo completo em HTML semântico seguindo TODAS estas regras:\n\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. FRAMEWORK 5W2H: O quê / Por quê / Quem / Onde / Quando / Como / Quanto\n4. HEADINGS: H2 sempre como perguntas ("Como funciona...?"), bigrams/trigrams nos headings, LSI nos H2/H3\n5. CONVERSACIONAL: parágrafos curtos (máx 3-4 linhas), frases completas, direto ao ponto\n6. SEO RANK MATH 100/100: keyword nos primeiros 10%, density 1-1.5%, keyword em 2+ H2, negrite palavras importantes\n7. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3] onde inserir as 3 imagens\n8. Incluir [LINK INTERNO: âncora → /slug] e [LINK EXTERNO NOFOLLOW: âncora → URL]\n9. 2 CTAs inline com chamada para ação clara\n10. SEM emojis, SEM FAQ, SEM box de autor (será adicionado separado)\n11. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR — cobrir tema com profundidade':'ARTIGO SECUNDÁRIO — focar no subtema e linkar para o pilar'}\n\nAo final, inclua:\n---PROXIMOS---\n3 títulos sugeridos para próximos artigos do cluster\n\nFormate em HTML com tags h1,h2,h3,p,strong,ul,ol,a`,
+    artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n\nESCREVA um artigo completo em HTML semântico seguindo TODAS estas regras:\n\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. FRAMEWORK 5W2H: O quê / Por quê / Quem / Onde / Quando / Como\n4. HEADINGS: H2 sempre como perguntas ("Como funciona...?"), bigrams/trigrams nos headings, LSI nos H2/H3\n5. CONVERSACIONAL: parágrafos curtos (máx 3-4 linhas), frases completas, direto ao ponto\n6. SEO RANK MATH 100/100: keyword nos primeiros 10%, density 1-1.5%, keyword em 2+ H2, negrite palavras importantes\n7. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3] onde inserir as 3 imagens\n8. Incluir [LINK INTERNO: âncora → /slug] e [LINK EXTERNO NOFOLLOW: âncora → URL]\n9. 2 CTAs inline com chamada para ação clara — NUNCA mencionar valores, preços ou investimentos\n10. SEM emojis, SEM FAQ, SEM box de autor, SEM menção a preços ou valores\n11. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR — cobrir tema com profundidade':'ARTIGO SECUNDÁRIO — focar no subtema e linkar para o pilar'}\n\nAo final, inclua:\n---PROXIMOS---\n3 títulos sugeridos para próximos artigos do cluster\n\nFormate em HTML com tags h1,h2,h3,p,strong,ul,ol,a`,
 
-    gmn:`Crie post para Google Meu Negócio.\n${base}\n\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade/bairro, CTA claro, incluir horários e endereço se disponível, tom local e próximo.\n\nEntregue apenas o texto do post.`,
+    gmn:`Crie UM ÚNICO post para Google Meu Negócio.\n${base}\n\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade/bairro, CTA claro, NUNCA mencionar preços ou valores, tom local e próximo.\n\nEntregue apenas o texto do post.`,
 
-    instagram:`Crie conteúdo para Instagram.\n${base}\n\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, 1 linha em branco entre parágrafos, sem emojis, CTA ao final, máx 2.200 chars.\n\nAo final, adicione:\n---HASHTAGS---\nGrupo 1 — Nicho (5 hashtags)\nGrupo 2 — Localização (5 hashtags)\nGrupo 3 — Alcance (5 hashtags)`,
+    instagram:`Crie UMA ÚNICA legenda para Instagram.\n${base}\n\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, 1 linha em branco entre parágrafos, sem emojis, CTA ao final, máx 2.200 chars, NUNCA mencionar preços ou valores.\n\nEntregue UMA legenda apenas, depois adicione:\n---HASHTAGS---\nGrupo 1 — Nicho (5 hashtags)\nGrupo 2 — Localização (5 hashtags)\nGrupo 3 — Alcance (5 hashtags)`,
 
-    facebook:`Adapte para Facebook.\n${base}\n\nBase: use o mesmo tema do Instagram mas adapte o tom.\nRegras: pode ser um pouco mais longa, incluir URL do artigo ao final, máx 5 hashtags, CTA para comentar/compartilhar/mensagem, sem emojis.\n\nEntregue apenas o texto.`,
+    facebook:`Crie UM ÚNICO post para Facebook.\n${base}\n\nBase: use o mesmo tema do Instagram mas adapte o tom.\nRegras: pode ser um pouco mais longa, incluir URL do artigo ao final, máx 5 hashtags, CTA para comentar/compartilhar/mensagem, sem emojis, NUNCA mencionar preços ou valores.\n\nEntregue apenas o texto.`,
 
-    linkedin:`Crie post para LinkedIn.\n${base}\n\nRegras: tom profissional e de autoridade, estrutura gancho→desenvolvimento→insight→CTA, parágrafos curtos, sem emojis, máx 1.300 chars.\n\nEntregue apenas o texto.`,
+    linkedin:`Crie UM ÚNICO post para LinkedIn.\n${base}\n\nRegras: tom profissional e de autoridade, estrutura gancho→desenvolvimento→insight→CTA, parágrafos curtos, sem emojis, máx 1.300 chars, NUNCA mencionar preços ou valores.\n\nEntregue apenas o texto.`,
   };
   return prompts[stepId]||'';
 }
@@ -552,9 +552,9 @@ async function generateText(step,ctx,key){
 async function generateDalleImage(step,ctx){
   const key=localStorage.getItem('nd_openai');
   if(!key)throw new Error('Chave OpenAI não configurada');
-  let prompt=`Professional editorial photography, ${ctx.seg} business in Brazil called "${ctx.biz}", ${ctx.service}, ${ctx.city}. Clean modern aesthetic, natural lighting, photorealistic, no text, no logos. High quality.`;
+  let prompt=`Imagem fotorrealista profissional para empresa brasileira "${ctx.biz}" do segmento ${ctx.seg} em ${ctx.city}. Serviço: ${ctx.service}. Estilo editorial limpo, iluminação natural, sem texto, sem logo, alta qualidade, proporção paisagem.`;
   if(generatedContent.analise){
-    try{const a=JSON.parse(generatedContent.analise);if(a.prompt_dalle)prompt=a.prompt_dalle}catch(e){}
+    try{const a=JSON.parse(generatedContent.analise);if(a.prompt_dalle)prompt=a.prompt_dalle+' Photorealistic, professional, Brazil, no text, no logos.'}catch(e){}
   }
   const resp=await fetch(PROXY_BASE+'/proxy-openai',{
     method:'POST',
@@ -573,7 +573,7 @@ async function generateDalleImage(step,ctx){
 async function generateGeminiImage(step,ctx){
   const key=localStorage.getItem('nd_gemini');
   if(!key)throw new Error('Chave Gemini não configurada');
-  let prompt=`Square social media image for ${ctx.biz}, ${ctx.seg} business, ${ctx.city} Brazil. Professional, clean, modern style, suitable for Instagram and Facebook, photorealistic, no text overlay.`;
+  let prompt=`Imagem quadrada para redes sociais, empresa brasileira "${ctx.biz}" do segmento ${ctx.seg} em ${ctx.city}. Estilo profissional, limpo e moderno, adequado para Instagram e Facebook, fotorrealista, sem texto sobreposto.`;
   if(generatedContent.analise){
     try{const a=JSON.parse(generatedContent.analise);if(a.prompt_gemini)prompt=a.prompt_gemini}catch(e){}
   }
@@ -781,7 +781,18 @@ async function saveToSupabase(){
     let analise={};
     try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
 
-    // Salvar posts
+    // Calcular data de publicação (Sex→Seg, Seg→Qua, Qua→Sex)
+    const hoje=new Date();
+    const diaSemana=hoje.getDay(); // 0=dom,1=seg,2=ter,3=qua,4=qui,5=sex,6=sab
+    let diasAtePublicacao=2; // padrão +2 dias
+    if(diaSemana===1) diasAtePublicacao=2; // seg → qua
+    else if(diaSemana===3) diasAtePublicacao=2; // qua → sex
+    else if(diaSemana===5) diasAtePublicacao=3; // sex → seg
+    const dataPublicacao=new Date(hoje);
+    dataPublicacao.setDate(hoje.getDate()+diasAtePublicacao);
+    const dataPublicacaoStr=dataPublicacao.toISOString().split('T')[0];
+
+    // Salvar posts (tabela correta: posts)
     const postMap={
       artigo:{tipo:'blog'},gmn:{tipo:'gmn'},
       instagram:{tipo:'instagram'},facebook:{tipo:'facebook'},linkedin:{tipo:'linkedin'}
@@ -790,7 +801,7 @@ async function saveToSupabase(){
       if(!generatedContent[key])continue;
       const editEl=document.getElementById('edit-'+key);
       const corpo=editEl?editEl.value:generatedContent[key];
-      await sb.from('postagens').insert({
+      await sb.from('posts').insert({
         semana_id:semanaId,cliente_id:clienteId,
         tipo:cfg.tipo,corpo,
         titulo:analise.titulo_seo||'',
@@ -807,7 +818,7 @@ async function saveToSupabase(){
     saveToHistory(ctx,semanaId);
 
     spinner.style.display='none';
-    status.innerHTML=`<div class="status-bar success">✓ Salvo com sucesso! Semana ID: <strong style="font-family:'DM Mono',monospace">${semanaId.slice(0,8)}...</strong></div>`;
+    status.innerHTML=`<div class="status-bar success">✓ Salvo! Conteúdo agendado para publicação em <strong>${dataPublicacao.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</strong></div>`;
     toast('Salvo no Supabase!','ok');
 
   }catch(e){
