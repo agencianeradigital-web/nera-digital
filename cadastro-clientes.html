@@ -179,6 +179,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="nav-label">Menu</div>
   <div class="nav-item" onclick="window.location='index.html'"><div class="nav-dot"></div>Gerar conteúdo</div>
   <div class="nav-item active"><div class="nav-dot"></div>Clientes</div>
+  <div class="nav-item" onclick="window.location='servicos.html'"><div class="nav-dot"></div>Serviços</div>
+  <div class="nav-item" onclick="window.location='financeiro.html'"><div class="nav-dot"></div>Financeiro</div>
   <div class="nav-item" onclick="window.location='painel-agencia.html'"><div class="nav-dot"></div>Painel</div>
   <div class="nav-label" style="margin-top:20px">Sistema</div>
   <div class="nav-item" onclick="window.location='index.html#config'"><div class="nav-dot"></div>Configurações</div>
@@ -486,7 +488,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div class="field">
         <label>Páginas existentes no site (para linkagem interna)</label>
-        <input type="text" id="paginas_site" placeholder="Ex: /sobre, /servicos, /contato (separadas por vírgula)">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-modo-manual" onclick="setModoPagenas('manual')" style="font-size:11px;padding:4px 10px;background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.3)">✏️ Manual</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-modo-sitemap" onclick="setModoPagenas('sitemap')" style="font-size:11px;padding:4px 10px">🗺️ Via Sitemap</button>
+        </div>
+        <div id="paginas-manual">
+          <input type="text" id="paginas_site" placeholder="Ex: /sobre, /servicos, /contato (separadas por vírgula)">
+          <div class="hint">Separe as URLs por vírgula</div>
+        </div>
+        <div id="paginas-sitemap" style="display:none">
+          <div style="display:flex;gap:8px">
+            <input type="text" id="sitemap_url" placeholder="Ex: https://meusite.com.br/sitemap.xml" style="flex:1">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="importarSitemap()" style="white-space:nowrap">Importar</button>
+          </div>
+          <div class="hint">Cole a URL do sitemap XML do site</div>
+          <div id="sitemap-status" style="margin-top:8px"></div>
+          <textarea id="paginas_site_sitemap" style="min-height:80px;margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;display:none" placeholder="URLs importadas aparecerão aqui..."></textarea>
+        </div>
       </div>
       <div class="field">
         <label>Palavras-chave principais</label>
@@ -500,6 +518,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="field">
         <label>Bio do autor</label>
         <textarea id="autor_bio" placeholder="Bio curta para aparecer nos artigos..." style="min-height:60px"></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- PROMPTS POR PLATAFORMA -->
+      <div class="section-title">Instruções de conteúdo por plataforma</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Configure instruções específicas para cada plataforma. Serão usadas automaticamente na geração de conteúdo. Deixe em branco para usar o padrão do sistema.</div>
+
+      <div class="field">
+        <label>📝 Blog WordPress — instruções adicionais</label>
+        <textarea id="prompt_blog" style="min-height:80px" placeholder="Ex: Sempre mencionar que atendemos pelo convênio Unimed. Incluir o endereço completo no final. CTA padrão: 'Agende sua consulta pelo WhatsApp (11) 99999-0000'."></textarea>
+      </div>
+      <div class="field">
+        <label>📍 Google Meu Negócio — instruções adicionais</label>
+        <textarea id="prompt_gmn" style="min-height:80px" placeholder="Ex: Sempre mencionar o horário de atendimento: Seg-Sex 8h-18h, Sáb 8h-12h. Endereço: Rua X, 123 — Bairro, Cidade. Incluir link do WhatsApp no CTA."></textarea>
+      </div>
+      <div class="field">
+        <label>📸 Instagram — instruções adicionais</label>
+        <textarea id="prompt_instagram" style="min-height:80px" placeholder="Ex: Sempre começar com uma pergunta impactante. Usar linguagem jovem e próxima. CTA sempre direcionando para o link na bio. Incluir sempre a hashtag #NomeDoCliente."></textarea>
+      </div>
+      <div class="field">
+        <label>📘 Facebook — instruções adicionais</label>
+        <textarea id="prompt_facebook" style="min-height:80px" placeholder="Ex: Tom mais formal que o Instagram. Sempre incluir o link do site. CTA para comentar ou compartilhar. Mencionar promoções ativas quando houver."></textarea>
+      </div>
+      <div class="field">
+        <label>💼 LinkedIn — instruções adicionais</label>
+        <textarea id="prompt_linkedin" style="min-height:80px" placeholder="Ex: Foco em autoridade e cases de sucesso. Sempre mencionar as certificações da empresa. CTA para entrar em contato pelo LinkedIn ou e-mail profissional."></textarea>
       </div>
 
       <div class="divider"></div>
@@ -652,7 +697,61 @@ function setTipo(tipo){
   document.getElementById('bloco-responsavel').style.display=tipo==='PJ'?'block':'none';
 }
 
-// ─── MÁSCARAS ─────────────────────────────────────────────────
+// ─── SITEMAP ──────────────────────────────────────────────────
+function setModoPagenas(modo){
+  const manual=document.getElementById('paginas-manual');
+  const sitemap=document.getElementById('paginas-sitemap');
+  const btnManual=document.getElementById('btn-modo-manual');
+  const btnSitemap=document.getElementById('btn-modo-sitemap');
+  if(modo==='manual'){
+    manual.style.display='block';sitemap.style.display='none';
+    btnManual.style.background='var(--accent-dim)';btnManual.style.color='var(--accent)';btnManual.style.borderColor='rgba(91,91,214,.3)';
+    btnSitemap.style.background='';btnSitemap.style.color='';btnSitemap.style.borderColor='';
+  }else{
+    manual.style.display='none';sitemap.style.display='block';
+    btnSitemap.style.background='var(--accent-dim)';btnSitemap.style.color='var(--accent)';btnSitemap.style.borderColor='rgba(91,91,214,.3)';
+    btnManual.style.background='';btnManual.style.color='';btnManual.style.borderColor='';
+  }
+}
+
+async function importarSitemap(){
+  const url=document.getElementById('sitemap_url').value.trim();
+  if(!url){toast('Cole a URL do sitemap','err');return}
+  const status=document.getElementById('sitemap-status');
+  const ta=document.getElementById('paginas_site_sitemap');
+  status.innerHTML='<div style="font-size:12px;color:var(--text3)">Importando sitemap...</div>';
+  try{
+    // Usar proxy CORS do Supabase
+    const resp=await fetch('https://dcsxhdqwdoxbwgokzlea.supabase.co/functions/v1/proxy-sitemap',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'},
+      body:JSON.stringify({url})
+    });
+    const data=await resp.json();
+    if(data.urls&&data.urls.length){
+      const urlsFormatadas=data.urls.join(', ');
+      ta.value=urlsFormatadas;
+      ta.style.display='block';
+      // Copiar para o campo principal
+      document.getElementById('paginas_site')?.setAttribute('data-sitemap',urlsFormatadas);
+      status.innerHTML=`<div style="font-size:12px;color:var(--green)">✓ ${data.urls.length} páginas importadas!</div>`;
+      toast(data.urls.length+' páginas importadas!','ok');
+    }else{
+      throw new Error('Nenhuma URL encontrada no sitemap');
+    }
+  }catch(e){
+    status.innerHTML=`<div style="font-size:12px;color:var(--red)">Erro: ${e.message}</div>`;
+  }
+}
+
+function getPaginasSite(){
+  const manual=document.getElementById('paginas-manual');
+  if(manual.style.display!=='none'){
+    return document.getElementById('paginas_site').value||'';
+  }else{
+    return document.getElementById('paginas_site_sitemap').value||'';
+  }
+}
 function maskCNPJ(el){
   let v=el.value.replace(/\D/g,'');
   v=v.replace(/^(\d{2})(\d)/,'$1.$2');
@@ -805,10 +904,16 @@ async function salvarCliente(){
     // SEO
     tom_voz:document.getElementById('tom_voz').value,
     plataformas:plats,
-    paginas_site:document.getElementById('paginas_site').value||null,
+    paginas_site:getPaginasSite()||null,
     palavras_chave:document.getElementById('keywords').value||null,
     autor_nome:document.getElementById('autor_nome').value||null,
     autor_bio:document.getElementById('autor_bio').value||null,
+    // Prompts por plataforma
+    prompt_blog:document.getElementById('prompt_blog').value||null,
+    prompt_gmn:document.getElementById('prompt_gmn').value||null,
+    prompt_instagram:document.getElementById('prompt_instagram').value||null,
+    prompt_facebook:document.getElementById('prompt_facebook').value||null,
+    prompt_linkedin:document.getElementById('prompt_linkedin').value||null,
     // Contrato
     data_inicio:document.getElementById('data_inicio').value||null,
     dia_vencimento:parseInt(document.getElementById('dia_vencimento').value)||null,
@@ -856,6 +961,11 @@ async function editarCliente(id){
     set('youtube',data.youtube);set('gmn_url',data.gmn_url);
     set('tom_voz',data.tom_voz);set('paginas_site',data.paginas_site);set('keywords',data.palavras_chave);
     set('autor_nome',data.autor_nome);set('autor_bio',data.autor_bio);
+    set('prompt_blog',data.prompt_blog);
+    set('prompt_gmn',data.prompt_gmn);
+    set('prompt_instagram',data.prompt_instagram);
+    set('prompt_facebook',data.prompt_facebook);
+    set('prompt_linkedin',data.prompt_linkedin);
     set('data_inicio',data.data_inicio);set('dia_vencimento',data.dia_vencimento);
     set('status_cliente',data.status_cliente||'ativo');set('observacoes',data.observacoes);
     // Plataformas
