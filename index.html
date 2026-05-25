@@ -200,6 +200,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="nav-item active" onclick="showPage('generator')"><div class="nav-dot"></div>Gerar conteúdo</div>
   <div class="nav-item" onclick="showPage('history')"><div class="nav-dot"></div>Histórico</div>
   <div class="nav-item" onclick="window.location='cadastro-clientes.html'"><div class="nav-dot"></div>Clientes</div>
+  <div class="nav-item" onclick="window.location='servicos.html'"><div class="nav-dot"></div>Serviços</div>
+  <div class="nav-item" onclick="window.location='financeiro.html'"><div class="nav-dot"></div>Financeiro</div>
   <div class="nav-item" onclick="window.location='painel-agencia.html'"><div class="nav-dot"></div>Painel</div>
   <div class="nav-label" style="margin-top:20px">Sistema</div>
   <div class="nav-item" onclick="showPage('config')"><div class="nav-dot"></div>Configurações</div>
@@ -293,6 +295,43 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-title">Schema markup do artigo</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Tipo de schema principal</label>
+          <select id="f-schema">
+            <option value="auto">Automático (baseado na intenção)</option>
+            <option value="Article,FAQPage,BreadcrumbList">Article + FAQPage + BreadcrumbList</option>
+            <option value="LocalBusiness,Service,FAQPage">LocalBusiness + Service + FAQPage</option>
+            <option value="Article,LocalBusiness,FAQPage,BreadcrumbList">Article + LocalBusiness + FAQPage</option>
+            <option value="HowTo,FAQPage,BreadcrumbList">HowTo + FAQPage + BreadcrumbList</option>
+            <option value="NewsArticle,FAQPage,BreadcrumbList">NewsArticle + FAQPage</option>
+            <option value="Product,FAQPage,BreadcrumbList">Product + FAQPage</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Carregar prompts de um cliente</label>
+          <select id="f-cliente-prompt" onchange="carregarPromptCliente()">
+            <option value="">Selecione para carregar prompts...</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-prompts-plat" style="display:none">
+      <div class="card-title">Instruções por plataforma <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(carregadas do cliente — edite se necessário)</span></div>
+      <div class="grid2">
+        <div class="field"><label>📝 Blog</label><textarea id="fp-blog" style="min-height:60px" placeholder="Instruções adicionais para o artigo..."></textarea></div>
+        <div class="field"><label>📍 GMN</label><textarea id="fp-gmn" style="min-height:60px" placeholder="Instruções adicionais para o GMN..."></textarea></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>📸 Instagram</label><textarea id="fp-instagram" style="min-height:60px" placeholder="Instruções adicionais para o Instagram..."></textarea></div>
+        <div class="field"><label>📘 Facebook</label><textarea id="fp-facebook" style="min-height:60px" placeholder="Instruções adicionais para o Facebook..."></textarea></div>
+      </div>
+      <div class="field"><label>💼 LinkedIn</label><textarea id="fp-linkedin" style="min-height:60px" placeholder="Instruções adicionais para o LinkedIn..."></textarea></div>
+    </div>
+
     <button class="btn btn-primary btn-full" id="gen-btn" onclick="startGeneration()">
       <span>Gerar conteúdo completo</span>
     </button>
@@ -317,11 +356,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
       <button class="btn btn-primary" onclick="saveToSupabase()"><span class="spinner" id="save-spinner" style="display:none"></span>Salvar no sistema</button>
+      <button class="btn btn-gold" id="btn-criar-doc" onclick="criarGoogleDoc()" style="display:none"><span class="spinner" id="doc-spinner" style="display:none"></span>📄 Criar Google Doc</button>
       <button class="btn btn-gold" onclick="copyAllContent()">Copiar tudo</button>
       <button class="btn btn-secondary" onclick="resetForm()">Gerar novo</button>
     </div>
     <div id="save-status" style="margin-top:12px"></div>
+    <div id="doc-status" style="margin-top:8px"></div>
   </div>
+</div>
+
+<!-- AUTORIZAR GOOGLE (banner) -->
+<div id="google-auth-banner" style="display:none;position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid #e0e2f0;border-radius:12px;padding:16px 20px;box-shadow:0 4px 24px rgba(91,91,214,.15);z-index:50;max-width:320px">
+  <div style="font-size:13px;font-weight:600;color:#1a1060;margin-bottom:6px">🔗 Autorizar Google Docs</div>
+  <div style="font-size:12px;color:#8888aa;margin-bottom:12px">Para criar Google Docs automaticamente, autorize sua conta Google.</div>
+  <button class="btn btn-primary" style="width:100%;font-size:13px" onclick="autorizarGoogle()">Autorizar Google</button>
+  <button onclick="document.getElementById('google-auth-banner').style.display='none'" style="width:100%;margin-top:6px;background:none;border:none;font-size:12px;color:#8888aa;cursor:pointer">Agora não</button>
 </div>
 
 <!-- HISTÓRICO -->
@@ -352,6 +401,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="cfg-title">Google — Gemini API (Nano Banana Pro)</div>
       <div class="cfg-desc">Gera imagens para redes sociais. Obtenha em aistudio.google.com → Get API Key.</div>
       <div class="field api-wrap"><label>Chave (AIza...)</label><input type="password" id="cfg-gemini" placeholder="AIza..." oninput="saveConfig()"><span class="api-toggle" onclick="toggleVis('cfg-gemini',this)">mostrar</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="cfg-section">
+      <div class="cfg-title">Asaas — Cobranças e NF-e</div>
+      <div class="cfg-desc">Integração com o Asaas para cobranças e emissão de notas fiscais. Obtenha em app.asaas.com → Configurações → API.</div>
+      <div class="field api-wrap"><label>Chave da API (começa com $aact_...)</label><input type="password" id="cfg-asaas" placeholder="$aact_..." oninput="saveConfig()"><span class="api-toggle" onclick="toggleVis('cfg-asaas',this)">mostrar</span></div>
+      <div class="field">
+        <label>Ambiente</label>
+        <select id="cfg-asaas-sandbox" onchange="saveConfig()">
+          <option value="true">Sandbox (testes)</option>
+          <option value="false">Produção (cobranças reais)</option>
+        </select>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="cfg-section">
@@ -389,7 +451,38 @@ let generatedContent={};
 let isGenerating=false;
 
 // ─── INIT ─────────────────────────────────────────────────────
-window.onload=()=>{loadConfig();renderHistory();updateStatus()};
+window.onload=()=>{loadConfig();renderHistory();updateStatus();loadClientesParaPrompt()};
+
+// ─── CARREGAR CLIENTES PARA PROMPT ────────────────────────────
+async function loadClientesParaPrompt(){
+  const{data}=await sb.from('clientes').select('id,nome_negocio,prompt_blog,prompt_gmn,prompt_instagram,prompt_facebook,prompt_linkedin').eq('ativo',true).order('nome_negocio');
+  if(!data||!data.length)return;
+  const sel=document.getElementById('f-cliente-prompt');
+  data.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.id;
+    opt.textContent=c.nome_negocio;
+    opt.dataset.prompts=JSON.stringify({
+      blog:c.prompt_blog||'',gmn:c.prompt_gmn||'',
+      instagram:c.prompt_instagram||'',facebook:c.prompt_facebook||'',linkedin:c.prompt_linkedin||''
+    });
+    sel.appendChild(opt);
+  });
+}
+
+function carregarPromptCliente(){
+  const sel=document.getElementById('f-cliente-prompt');
+  const opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value)return;
+  const prompts=JSON.parse(opt.dataset.prompts||'{}');
+  document.getElementById('fp-blog').value=prompts.blog||'';
+  document.getElementById('fp-gmn').value=prompts.gmn||'';
+  document.getElementById('fp-instagram').value=prompts.instagram||'';
+  document.getElementById('fp-facebook').value=prompts.facebook||'';
+  document.getElementById('fp-linkedin').value=prompts.linkedin||'';
+  document.getElementById('card-prompts-plat').style.display='block';
+  toast('Prompts do cliente carregados!','ok');
+}
 
 // ─── NAV ──────────────────────────────────────────────────────
 function showPage(id){
@@ -403,18 +496,23 @@ function showPage(id){
 
 // ─── CONFIG ───────────────────────────────────────────────────
 function saveConfig(){
-  ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
+  ['anthropic','openai','gemini','asaas','agency','site','wpp','prazo'].forEach(k=>{
     const el=document.getElementById('cfg-'+k);
     if(el)localStorage.setItem('nd_'+k,el.value);
   });
+  const sandbox=document.getElementById('cfg-asaas-sandbox');
+  if(sandbox)localStorage.setItem('nd_asaas_sandbox',sandbox.value);
   updateStatus();
 }
 function loadConfig(){
-  ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
+  ['anthropic','openai','gemini','asaas','agency','site','wpp','prazo'].forEach(k=>{
     const v=localStorage.getItem('nd_'+k);
     const el=document.getElementById('cfg-'+k);
     if(v&&el)el.value=v;
   });
+  const sandbox=document.getElementById('cfg-asaas-sandbox');
+  const sv=localStorage.getItem('nd_asaas_sandbox');
+  if(sandbox&&sv)sandbox.value=sv;
 }
 function updateStatus(){
   const a=!!localStorage.getItem('nd_anthropic');
@@ -493,6 +591,12 @@ function buildContext(){
     author:document.getElementById('f-author').value.trim(),
     author_title:document.getElementById('f-author-title').value.trim(),
     cred:document.getElementById('f-cred').value.trim(),
+    schema:document.getElementById('f-schema').value,
+    prompt_blog:document.getElementById('fp-blog').value.trim(),
+    prompt_gmn:document.getElementById('fp-gmn').value.trim(),
+    prompt_instagram:document.getElementById('fp-instagram').value.trim(),
+    prompt_facebook:document.getElementById('fp-facebook').value.trim(),
+    prompt_linkedin:document.getElementById('fp-linkedin').value.trim(),
     agency:localStorage.getItem('nd_agency')||'Nera Digital',
     prazo:localStorage.getItem('nd_prazo')||'48',
   };
@@ -516,17 +620,17 @@ function getPrompt(stepId,ctx){
   const base=`Empresa: ${ctx.biz}\nSegmento: ${ctx.seg}\nCidade: ${ctx.city}\nPalavra-chave: ${ctx.kw}\nServiço: ${ctx.service}\nIntenção: ${ctx.intent}\nDiferenciais: ${ctx.diff}\nTom: ${ctx.tone}\nAutor: ${ctx.author} — ${ctx.author_title} — ${ctx.cred}\nPáginas existentes: ${ctx.pages||'Nenhuma'}\nURL GMN: ${ctx.gmn_url||'Não informado'}\nExtras: ${ctx.extra||'Nenhum'}`;
 
   const prompts={
-    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\n\nGere análise SEO completa em JSON:\n{\n"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"relacoes_lexicais":{"sinonimos":[],"concorrencias":[],"hierarquia":{"hiperonimo":"","hiponimos":[]}},"ngrams":{"bigrams":["3 bigrams"],"trigrams":["3 trigrams"]},"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"linkagens_internas":[],"linkagem_externa":"","imagem_nome":"slug.jpg","imagem_alt":"descrição em português com keyword","prompt_dalle":"prompt em PORTUGUÊS descrevendo imagem fotorrealista profissional para capa do artigo, sem texto, sem logo","prompt_gemini":"prompt em PORTUGUÊS descrevendo imagem quadrada profissional para redes sociais, sem texto sobreposto","cluster":{"pagina_pilar":"","tipo":"PILAR ou SECUNDÁRIO","paginas_sugeridas":[{"titulo":"","slug":"","intencao":""}]}}\n\nResponda APENAS com o JSON.`,
+    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\nSCHEMA: ${ctx.schema==='auto'?'Defina o melhor baseado na intenção':ctx.schema}\n\nGere análise SEO completa em JSON:\n{\n"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"relacoes_lexicais":{"sinonimos":[],"concorrencias":[],"hierarquia":{"hiperonimo":"","hiponimos":[]}},"ngrams":{"bigrams":["3 bigrams"],"trigrams":["3 trigrams"]},"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"linkagens_internas":[],"linkagem_externa":"","imagem_nome":"slug.jpg","imagem_alt":"descrição em português com keyword","prompt_dalle":"prompt em PORTUGUÊS fotorrealista para capa, sem texto, sem logo","prompt_gemini":"prompt em PORTUGUÊS para imagem quadrada social, sem texto","cluster":{"pagina_pilar":"","tipo":"PILAR ou SECUNDÁRIO","paginas_sugeridas":[{"titulo":"","slug":"","intencao":""}]}}\n\nResponda APENAS com o JSON.`,
 
-    artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n\nESCREVA um artigo completo em HTML semântico seguindo TODAS estas regras:\n\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. FRAMEWORK 5W2H: O quê / Por quê / Quem / Onde / Quando / Como\n4. HEADINGS: H2 sempre como perguntas ("Como funciona...?"), bigrams/trigrams nos headings, LSI nos H2/H3\n5. CONVERSACIONAL: parágrafos curtos (máx 3-4 linhas), frases completas, direto ao ponto\n6. SEO RANK MATH 100/100: keyword nos primeiros 10%, density 1-1.5%, keyword em 2+ H2, negrite palavras importantes\n7. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3] onde inserir as 3 imagens\n8. Incluir [LINK INTERNO: âncora → /slug] e [LINK EXTERNO NOFOLLOW: âncora → URL]\n9. 2 CTAs inline com chamada para ação clara — NUNCA mencionar valores, preços ou investimentos\n10. SEM emojis, SEM FAQ, SEM box de autor, SEM menção a preços ou valores\n11. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR — cobrir tema com profundidade':'ARTIGO SECUNDÁRIO — focar no subtema e linkar para o pilar'}\n\nAo final, inclua:\n---PROXIMOS---\n3 títulos sugeridos para próximos artigos do cluster\n\nFormate em HTML com tags h1,h2,h3,p,strong,ul,ol,a`,
+    artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n${ctx.prompt_blog?'\\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE PARA O BLOG:\\n'+ctx.prompt_blog+'\\n':''}\nESCREVA um artigo completo em HTML semântico seguindo TODAS estas regras:\n\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. FRAMEWORK 5W2H: O quê / Por quê / Quem / Onde / Quando / Como\n4. HEADINGS: H2 sempre como perguntas, bigrams/trigrams nos headings, LSI nos H2/H3\n5. CONVERSACIONAL: parágrafos curtos (máx 3-4 linhas), frases completas, direto ao ponto\n6. SEO RANK MATH 100/100: keyword nos primeiros 10%, density 1-1.5%, keyword em 2+ H2, negrite palavras importantes\n7. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3] onde inserir as 3 imagens\n8. Incluir [LINK INTERNO: âncora → /slug] e [LINK EXTERNO NOFOLLOW: âncora → URL]\n9. 2 CTAs inline com chamada para ação clara — NUNCA mencionar valores ou preços\n10. SEM emojis, SEM FAQ, SEM box de autor, SEM preços\n11. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR':'ARTIGO SECUNDÁRIO'}\n\nAo final do artigo HTML, inclua o bloco:\n---SCHEMA---\nCom o JSON-LD completo para colar no WordPress usando os schemas: ${ctx.schema==='auto'?'escolha os mais adequados para a intenção de busca':ctx.schema}\nIncluir: Article com author/publisher/datePublished${ctx.schema.includes('FAQPage')||ctx.schema==='auto'?', FAQPage com mínimo 5 perguntas baseadas no conteúdo':''}${ctx.schema.includes('LocalBusiness')||ctx.schema==='auto'?', LocalBusiness com name/address/telephone/url':''}, BreadcrumbList\nFormato: <script type="application/ld+json">...</script>\n\n---PROXIMOS---\n3 títulos sugeridos para próximos artigos do cluster`,
 
-    gmn:`Crie UM ÚNICO post para Google Meu Negócio.\n${base}\n\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade/bairro, CTA claro, NUNCA mencionar preços ou valores, tom local e próximo.\n\nEntregue apenas o texto do post.`,
+    gmn:`Crie UM ÚNICO post para Google Meu Negócio.\n${base}\n${ctx.prompt_gmn?'\\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE:\\n'+ctx.prompt_gmn+'\\n':''}\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade/bairro, CTA claro, NUNCA mencionar preços.\n\nEntregue apenas o texto do post.`,
 
-    instagram:`Crie UMA ÚNICA legenda para Instagram.\n${base}\n\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, 1 linha em branco entre parágrafos, sem emojis, CTA ao final, máx 2.200 chars, NUNCA mencionar preços ou valores.\n\nEntregue UMA legenda apenas, depois adicione:\n---HASHTAGS---\nGrupo 1 — Nicho (5 hashtags)\nGrupo 2 — Localização (5 hashtags)\nGrupo 3 — Alcance (5 hashtags)`,
+    instagram:`Crie UMA ÚNICA legenda para Instagram.\n${base}\n${ctx.prompt_instagram?'\\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE:\\n'+ctx.prompt_instagram+'\\n':''}\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, sem emojis, CTA ao final, máx 2.200 chars, NUNCA mencionar preços.\n\nEntregue UMA legenda, depois:\n---HASHTAGS---\nGrupo 1 — Nicho (5)\nGrupo 2 — Localização (5)\nGrupo 3 — Alcance (5)`,
 
-    facebook:`Crie UM ÚNICO post para Facebook.\n${base}\n\nBase: use o mesmo tema do Instagram mas adapte o tom.\nRegras: pode ser um pouco mais longa, incluir URL do artigo ao final, máx 5 hashtags, CTA para comentar/compartilhar/mensagem, sem emojis, NUNCA mencionar preços ou valores.\n\nEntregue apenas o texto.`,
+    facebook:`Crie UM ÚNICO post para Facebook.\n${base}\n${ctx.prompt_facebook?'\\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE:\\n'+ctx.prompt_facebook+'\\n':''}\nRegras: pode ser mais longa, URL ao final, máx 5 hashtags, CTA para comentar/compartilhar/mensagem, sem emojis, NUNCA mencionar preços.\n\nEntregue apenas o texto.`,
 
-    linkedin:`Crie UM ÚNICO post para LinkedIn.\n${base}\n\nRegras: tom profissional e de autoridade, estrutura gancho→desenvolvimento→insight→CTA, parágrafos curtos, sem emojis, máx 1.300 chars, NUNCA mencionar preços ou valores.\n\nEntregue apenas o texto.`,
+    linkedin:`Crie UM ÚNICO post para LinkedIn.\n${base}\n${ctx.prompt_linkedin?'\\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE:\\n'+ctx.prompt_linkedin+'\\n':''}\nRegras: tom profissional, estrutura gancho→desenvolvimento→insight→CTA, parágrafos curtos, sem emojis, máx 1.300 chars, NUNCA mencionar preços.\n\nEntregue apenas o texto.`,
   };
   return prompts[stepId]||'';
 }
@@ -657,7 +761,16 @@ function renderResults(steps){
   }
   document.getElementById('meta-section').innerHTML=metaHtml;
 
-  const labels={analise:'Análise SEO',artigo:'Artigo',gmn:'GMN',instagram:'Instagram',facebook:'Facebook',linkedin:'LinkedIn',img_capa:'Capa (DALL-E)',img_social:'Social (Gemini)'};
+  const labels={analise:'Análise SEO',artigo:'Artigo',gmn:'GMN',instagram:'Instagram',facebook:'Facebook',linkedin:'LinkedIn',img_capa:'Capa (DALL-E)',img_social:'Social (Gemini)',schema:'Schema WordPress'};
+  // Extrair schema do artigo se existir
+  if(generatedContent.artigo){
+    const schemaMatch=generatedContent.artigo.match(/---SCHEMA---\n([\s\S]*?)(?:---PROXIMOS---|$)/);
+    if(schemaMatch){
+      generatedContent.schema=schemaMatch[1].trim();
+      generatedContent.artigo=generatedContent.artigo.replace(/---SCHEMA---[\s\S]*?(?=---PROXIMOS---|$)/,'').trim();
+    }
+  }
+
   let first=true;
   steps.forEach(s=>{
     if(!generatedContent[s.id])return;
@@ -745,7 +858,80 @@ function copyAllContent(){
   navigator.clipboard.writeText(all).then(()=>toast('Tudo copiado!','ok'));
 }
 
-// ─── SALVAR SUPABASE ──────────────────────────────────────────
+// ─── GOOGLE DOCS ──────────────────────────────────────────────
+const GOOGLE_CLIENT_ID='321725219758-ua8uqrvitol8bfk1421va2c0b7b2k1fv.apps.googleusercontent.com';
+const GOOGLE_REDIRECT='https://nera-digital-delta.vercel.app/oauth-callback.html';
+
+function autorizarGoogle(){
+  const scope='https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
+  const url='https://accounts.google.com/o/oauth2/v2/auth'
+    +'?client_id='+encodeURIComponent(GOOGLE_CLIENT_ID)
+    +'&redirect_uri='+encodeURIComponent(GOOGLE_REDIRECT)
+    +'&response_type=code'
+    +'&scope='+encodeURIComponent(scope)
+    +'&access_type=offline'
+    +'&prompt=consent';
+  window.open(url,'_blank');
+}
+
+async function criarGoogleDoc(){
+  const ctx=buildContext();
+  const spinner=document.getElementById('doc-spinner');
+  const btn=document.getElementById('btn-criar-doc');
+  spinner.style.display='inline-block';
+  btn.disabled=true;
+
+  let analise={};
+  try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
+
+  const editArtigo=document.getElementById('edit-artigo');
+  const editGmn=document.getElementById('edit-gmn');
+  const editInsta=document.getElementById('edit-instagram');
+  const editFb=document.getElementById('edit-facebook');
+  const editLi=document.getElementById('edit-linkedin');
+
+  try{
+    const resp=await fetch(PROXY_BASE+'/criar-google-doc',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_ANON},
+      body:JSON.stringify({
+        titulo:analise.titulo_seo||ctx.kw,
+        cliente:ctx.biz,
+        keyword:ctx.kw,
+        slug:analise.slug||'',
+        meta_desc:analise.meta_description||'',
+        artigo:editArtigo?.value||generatedContent.artigo||'',
+        gmn:editGmn?.value||generatedContent.gmn||'',
+        instagram:editInsta?.value||generatedContent.instagram||'',
+        facebook:editFb?.value||generatedContent.facebook||'',
+        linkedin:editLi?.value||generatedContent.linkedin||'',
+        semana_id:localStorage.getItem('nd_last_semana_id')||'',
+      })
+    });
+    const data=await resp.json();
+    if(data.success){
+      const docUrl=data.doc_url;
+      document.getElementById('doc-status').innerHTML=
+        '<div class="status-bar success">📄 Google Doc criado! <a href="'+docUrl+'" target="_blank" style="color:var(--green);font-weight:600;margin-left:6px">Abrir documento</a> &nbsp;|&nbsp; <a href="aprovar.html?doc='+encodeURIComponent(docUrl)+'&cliente='+encodeURIComponent(ctx.biz)+'" style="color:var(--green);font-weight:600">Aprovar e enviar ao cliente →</a></div>';
+      toast('Google Doc criado!','ok');
+    }else{
+      if(data.error&&data.error.includes('não autorizado')){
+        document.getElementById('google-auth-banner').style.display='block';
+      }
+      throw new Error(data.error||'Erro ao criar documento');
+    }
+  }catch(e){
+    document.getElementById('doc-status').innerHTML='<div class="status-bar error">'+e.message+'</div>';
+    if(e.message.includes('autorizado')||e.message.includes('token')){
+      document.getElementById('google-auth-banner').style.display='block';
+    }
+  }finally{
+    spinner.style.display='none';
+    btn.disabled=false;
+  }
+}
+
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
 async function saveToSupabase(){
   const spinner=document.getElementById('save-spinner');
   spinner.style.display='inline-block';
@@ -784,7 +970,6 @@ async function saveToSupabase(){
     try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
 
     // Calcular data de publicação (Sex→Seg, Seg→Qua, Qua→Sex)
-    const hoje=new Date();
     const diaSemana=hoje.getDay(); // 0=dom,1=seg,2=ter,3=qua,4=qui,5=sex,6=sab
     let diasAtePublicacao=2; // padrão +2 dias
     if(diaSemana===1) diasAtePublicacao=2; // seg → qua
@@ -818,9 +1003,11 @@ async function saveToSupabase(){
 
     // Salvar histórico local
     saveToHistory(ctx,semanaId);
+    localStorage.setItem('nd_last_semana_id',semanaId);
+    document.getElementById('btn-criar-doc').style.display='inline-flex';
 
     spinner.style.display='none';
-    status.innerHTML=`<div class="status-bar success">✓ Salvo! Conteúdo agendado para publicação em <strong>${dataPublicacao.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</strong></div>`;
+    status.innerHTML=`<div class="status-bar success">✓ Salvo! Conteúdo agendado para publicação em <strong style="font-family:'DM Mono',monospace">${dataPublicacao.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</strong>. Clique em "Criar Google Doc" para enviar para aprovação.</div>`;
     toast('Salvo no Supabase!','ok');
 
   }catch(e){

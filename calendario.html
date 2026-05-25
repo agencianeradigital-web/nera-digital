@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendário Editorial — Nera Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f9;--surface:#fff;--surface2:#f0f1f8;--surface3:#e8eaf4;
+  --border:#e0e2f0;--border2:#c8cae8;
+  --text:#1a1060;--text2:#4a4a7a;--text3:#8888aa;
+  --accent:#5B5BD6;--accent2:#4848b8;
+  --accent-dim:rgba(91,91,214,.08);--accent-dim2:rgba(91,91,214,.16);
+  --gold:#F5A623;--gold-dim:rgba(245,166,35,.12);
+  --red:#e03030;--red-dim:rgba(224,48,48,.08);
+  --green:#1a9e5a;--green-dim:rgba(26,158,90,.1);
+  --radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff}
+.logo-name{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3)}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 6px;padding:0 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.nav-item.active .nav-dot{opacity:1}
+.main{padding:36px 40px;overflow-y:auto}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.page-title{font-size:22px;font-weight:600}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border)}
+.tab{padding:9px 20px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim2)}
+.field input::placeholder{color:var(--text3)}
+.hint{font-size:11px;color:var(--text3);margin-top:4px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{opacity:.9}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{width:30px;height:30px;padding:0;justify-content:center;border-radius:8px}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.badge-agendado{background:var(--gold-dim);color:var(--gold)}
+.badge-aprovado{background:var(--accent-dim);color:var(--accent)}
+.badge-publicado{background:var(--green-dim);color:var(--green)}
+.badge-pendente{background:var(--surface2);color:var(--text3)}
+.badge-erro{background:var(--red-dim);color:var(--red)}
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px}
+.status-bar.success{background:var(--green-dim);color:var(--green);border:1px solid rgba(26,158,90,.2)}
+.status-bar.error{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,48,48,.2)}
+.status-bar.info{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(91,91,214,.2)}
+.status-bar.warning{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,166,35,.2)}
+
+/* CALENDÁRIO VISUAL */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:24px}
+.cal-header{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:6px 0;text-transform:uppercase}
+.cal-day{min-height:80px;border-radius:var(--radius);border:1px solid var(--border);padding:6px;background:var(--surface);cursor:default}
+.cal-day.hoje{border-color:var(--accent);background:var(--accent-dim)}
+.cal-day.outro-mes{background:var(--surface2);opacity:.5}
+.cal-day-num{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.cal-evento{font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cal-evento.blog{background:var(--accent-dim);color:var(--accent)}
+.cal-evento.gmn{background:rgba(26,158,90,.1);color:var(--green)}
+.cal-evento.social{background:var(--gold-dim);color:var(--gold)}
+.cal-nav{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.cal-mes{font-size:16px;font-weight:600;color:var(--text)}
+
+/* DIAS DA SEMANA SELETOR */
+.dias-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.dia-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:all .15s;display:flex;align-items:center;justify-content:center}
+.dia-btn:hover{border-color:var(--accent)}
+.dia-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* CLIENTE CARD */
+.cliente-config{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px}
+.cliente-config-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cliente-nome{font-size:14px;font-weight:600;color:var(--text)}
+.cliente-config-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--text2)}
+
+/* TABELA */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--surface2)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,16,96,.3);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(26,16,96,.15)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:18px;color:var(--text3);display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--surface2)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
+.divider{height:1px;background:var(--border);margin:20px 0}
+.section-title{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(91,91,214,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <div><div class="logo-name">Nera Digital</div><div class="logo-sub">Calendário editorial</div></div>
+  </div>
+  <div class="nav-label">Menu</div>
+  <div class="nav-item" onclick="go('index.html')"><div class="nav-dot"></div>Gerar conteúdo</div>
+  <div class="nav-item" onclick="go('cadastro-clientes.html')"><div class="nav-dot"></div>Clientes</div>
+  <div class="nav-item active"><div class="nav-dot"></div>Calendário</div>
+  <div class="nav-item" onclick="go('servicos.html')"><div class="nav-dot"></div>Serviços</div>
+  <div class="nav-item" onclick="go('financeiro.html')"><div class="nav-dot"></div>Financeiro</div>
+  <div class="nav-item" onclick="go('painel-agencia.html')"><div class="nav-dot"></div>Painel</div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div><div class="page-title">Calendário Editorial</div><div class="page-sub">Agende e publique conteúdos automaticamente</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="switchTab('config')">⚙️ Configurar clientes</button>
+      <button class="btn btn-primary" onclick="openModalAgendar()">+ Agendar conteúdo</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-calendario" onclick="switchTab('calendario')">Calendário</div>
+    <div class="tab" id="tab-agenda" onclick="switchTab('agenda')">Lista de agendamentos</div>
+    <div class="tab" id="tab-config" onclick="switchTab('config')">Configuração por cliente</div>
+  </div>
+
+  <!-- CALENDÁRIO VISUAL -->
+  <div class="tab-pane active" id="pane-calendario">
+    <div class="card">
+      <div class="cal-nav">
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="mudarMes(-1)">←</button>
+        <div class="cal-mes" id="cal-mes-titulo"></div>
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="mudarMes(1)">→</button>
+        <div style="margin-left:auto;display:flex;gap:8px;font-size:12px;color:var(--text3)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>Blog</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span>GMN</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gold);display:inline-block"></span>Social</span>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-header">Dom</div><div class="cal-header">Seg</div><div class="cal-header">Ter</div>
+        <div class="cal-header">Qua</div><div class="cal-header">Qui</div><div class="cal-header">Sex</div><div class="cal-header">Sáb</div>
+      </div>
+      <div class="cal-grid" id="cal-body"></div>
+    </div>
+  </div>
+
+  <!-- LISTA DE AGENDAMENTOS -->
+  <div class="tab-pane" id="pane-agenda">
+    <div id="agenda-status"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Agendamentos</div>
+        <select id="filtro-cliente" onchange="loadAgenda()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text)">
+          <option value="">Todos os clientes</option>
+        </select>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Cliente</th><th>Data</th><th>Tipo</th><th>Título</th><th>Status</th><th></th></tr></thead>
+        <tbody id="agenda-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONFIGURAÇÃO POR CLIENTE -->
+  <div class="tab-pane" id="pane-config">
+    <div class="status-bar info">Configure a periodicidade e as credenciais do WordPress para cada cliente. A senha do app é gerada no painel do WordPress em Usuários → Senhas de aplicativo.</div>
+    <div id="config-lista"></div>
+  </div>
+</main>
+</div>
+
+<!-- MODAL AGENDAR -->
+<div class="modal-overlay" id="modal-agendar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Agendar conteúdo</div>
+      <button class="modal-close" onclick="closeModal('modal-agendar')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="agendar-status"></div>
+      <div class="grid2">
+        <div class="field"><label>Cliente</label><select id="ag-cliente" onchange="sugerirDatas()"><option value="">Selecione...</option></select></div>
+        <div class="field"><label>Semana gerada</label><select id="ag-semana"><option value="">Selecione...</option></select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Data de publicação</label><input type="date" id="ag-data"></div>
+        <div class="field"><label>Horário</label><input type="time" id="ag-horario" value="08:00"></div>
+      </div>
+      <div class="field"><label>Tipo</label>
+        <select id="ag-tipo">
+          <option value="blog">Blog WordPress</option>
+          <option value="gmn">Google Meu Negócio</option>
+          <option value="social">Redes sociais</option>
+        </select>
+      </div>
+      <div id="datas-sugeridas" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agendar')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-agendar" onclick="salvarAgendamento()">
+        <span class="spinner" id="spin-agendar" style="display:none"></span>
+        Agendar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIG CLIENTE -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="config-modal-title">Configurar publicação</div>
+      <button class="modal-close" onclick="closeModal('modal-config')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="config-status"></div>
+      <div class="section-title">WordPress</div>
+      <div class="field"><label>URL do WordPress</label><input type="text" id="cfg-wp-url" placeholder="https://meusite.com.br"></div>
+      <div class="grid2">
+        <div class="field"><label>Usuário</label><input type="text" id="cfg-wp-user" placeholder="admin"></div>
+        <div class="field"><label>Senha de aplicativo</label><input type="password" id="cfg-wp-senha" placeholder="xxxx xxxx xxxx xxxx"></div>
+      </div>
+      <div class="hint" style="margin-top:-8px;margin-bottom:14px">Gere em WordPress → Usuários → Editar perfil → Senhas de aplicativo</div>
+      <button class="btn btn-secondary btn-sm" onclick="testarWP()">🔌 Testar conexão</button>
+      <div id="wp-test-status" style="margin-top:8px"></div>
+
+      <div class="divider"></div>
+      <div class="section-title">Periodicidade de publicação</div>
+      <div class="field"><label>Dias de publicação</label>
+        <div class="dias-grid" id="dias-grid">
+          <div class="dia-btn" data-dia="0" onclick="toggleDia(this)">Dom</div>
+          <div class="dia-btn on" data-dia="1" onclick="toggleDia(this)">Seg</div>
+          <div class="dia-btn" data-dia="2" onclick="toggleDia(this)">Ter</div>
+          <div class="dia-btn on" data-dia="3" onclick="toggleDia(this)">Qua</div>
+          <div class="dia-btn" data-dia="4" onclick="toggleDia(this)">Qui</div>
+          <div class="dia-btn on" data-dia="5" onclick="toggleDia(this)">Sex</div>
+          <div class="dia-btn" data-dia="6" onclick="toggleDia(this)">Sáb</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Horário padrão de publicação</label><input type="time" id="cfg-horario" value="08:00"></div>
+        <div class="field"><label>Publicação ativa</label>
+          <select id="cfg-ativo-pub">
+            <option value="true">Sim — publicar automaticamente</option>
+            <option value="false">Não — somente manual</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-config')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-config" onclick="salvarConfigCliente()">
+        <span class="spinner" id="spin-config" style="display:none"></span>
+        Salvar configuração
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const sb=supabase.createClient(
+  'https://dcsxhdqwdoxbwgokzlea.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'
+);
+const PROXY='https://dcsxhdqwdoxbwgokzlea.supabase.co/functions/v1';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
+
+let clientes=[];
+let agendamentos=[];
+let calMes=new Date().getMonth();
+let calAno=new Date().getFullYear();
+let configClienteId=null;
+
+const go=url=>window.location=url;
+const moeda=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+const diasNomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const mesesNomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+window.onload=async()=>{
+  await loadClientes();
+  loadCalendario();
+  loadAgenda();
+  loadConfigClientes();
+};
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('pane-'+tab).classList.add('active');
+}
+
+async function loadClientes(){
+  const{data}=await sb.from('clientes').select('id,nome_negocio,wp_url,wp_usuario,wp_senha_app,pub_dias,pub_horario,pub_frequencia,ativo_publicacao').eq('ativo',true).order('nome_negocio');
+  clientes=data||[];
+  ['ag-cliente','filtro-cliente'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const hasEmpty=el.options[0]?.value==='';
+    if(!hasEmpty)el.innerHTML='<option value="">Todos</option>';
+    clientes.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.id;o.textContent=c.nome_negocio;
+      el.appendChild(o);
+    });
+  });
+}
+
+// ─── CALENDÁRIO VISUAL ────────────────────────────────────────
+async function loadCalendario(){
+  const{data}=await sb.from('calendario_editorial')
+    .select('*,clientes(nome_negocio)')
+    .gte('data_publicacao',new Date(calAno,calMes,1).toISOString().split('T')[0])
+    .lte('data_publicacao',new Date(calAno,calMes+1,0).toISOString().split('T')[0]);
+  agendamentos=data||[];
+  renderCalendario();
+}
+
+function renderCalendario(){
+  document.getElementById('cal-mes-titulo').textContent=mesesNomes[calMes]+' '+calAno;
+  const body=document.getElementById('cal-body');
+  body.innerHTML='';
+  const primeiroDia=new Date(calAno,calMes,1).getDay();
+  const ultimoDia=new Date(calAno,calMes+1,0).getDate();
+  const hoje=new Date();
+
+  // Dias do mês anterior
+  for(let i=0;i<primeiroDia;i++){
+    const div=document.createElement('div');
+    div.className='cal-day outro-mes';
+    body.appendChild(div);
+  }
+
+  // Dias do mês atual
+  for(let d=1;d<=ultimoDia;d++){
+    const div=document.createElement('div');
+    const isHoje=hoje.getDate()===d&&hoje.getMonth()===calMes&&hoje.getFullYear()===calAno;
+    div.className='cal-day'+(isHoje?' hoje':'');
+    const dataStr=`${calAno}-${String(calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const eventos=agendamentos.filter(a=>a.data_publicacao===dataStr);
+    div.innerHTML=`<div class="cal-dia-num">${d}</div>`
+      +eventos.map(e=>`<div class="cal-evento ${e.tipo||'blog'}" title="${e.clientes?.nome_negocio||''} — ${e.titulo||e.tipo}" onclick="verAgendamento('${e.id}')">${(e.clientes?.nome_negocio||'').slice(0,15)}</div>`).join('');
+    body.appendChild(div);
+  }
+}
+
+function mudarMes(delta){
+  calMes+=delta;
+  if(calMes>11){calMes=0;calAno++}
+  if(calMes<0){calMes=11;calAno--}
+  loadCalendario();
+}
+
+// ─── LISTA DE AGENDAMENTOS ────────────────────────────────────
+async function loadAgenda(){
+  const clienteId=document.getElementById('filtro-cliente')?.value||'';
+  let query=sb.from('calendario_editorial')
+    .select('*,clientes(nome_negocio)')
+    .order('data_publicacao',{ascending:true})
+    .limit(50);
+  if(clienteId)query=query.eq('cliente_id',clienteId);
+  const{data,error}=await query;
+  if(error){document.getElementById('agenda-status').innerHTML=`<div class="status-bar error">${error.message}</div>`;return}
+  const tbody=document.getElementById('agenda-tbody');
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">Nenhum agendamento encontrado.</td></tr>';return}
+  tbody.innerHTML=data.map(a=>{
+    const data_fmt=new Date(a.data_publicacao+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    return`<tr>
+      <td style="font-weight:500;color:var(--text)">${a.clientes?.nome_negocio||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${data_fmt} ${a.horario_publicacao||'08:00'}</td>
+      <td><span class="badge badge-${a.tipo==='blog'?'aprovado':a.tipo==='gmn'?'publicado':'agendado'}">${a.tipo||'blog'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${a.titulo||'—'}</td>
+      <td><span class="badge badge-${a.status}">${a.status}</span></td>
+      <td><div style="display:flex;gap:4px">
+        ${a.status==='agendado'||a.status==='aprovado'?`<button class="btn btn-sm btn-green btn-icon" onclick="publicarAgora('${a.id}')" title="Publicar agora">▶</button>`:''}
+        ${a.wp_post_url?`<a href="${a.wp_post_url}" target="_blank" class="btn btn-sm btn-secondary btn-icon" title="Ver publicação">🔗</a>`:''}
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="deletarAgendamento('${a.id}')" title="Excluir">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── AGENDAR ─────────────────────────────────────────────────
+function openModalAgendar(){
+  document.getElementById('agendar-status').innerHTML='';
+  document.getElementById('ag-semana').innerHTML='<option value="">Selecione o cliente primeiro</option>';
+  document.getElementById('ag-data').value='';
+  document.getElementById('modal-agendar').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+async function sugerirDatas(){
+  const clienteId=document.getElementById('ag-cliente').value;
+  if(!clienteId)return;
+  const cliente=clientes.find(c=>c.id===clienteId);
+
+  // Carregar semanas do cliente
+  const{data:semanas}=await sb.from('semanas')
+    .select('id,semana_inicio,semana_fim,status')
+    .eq('cliente_id',clienteId)
+    .in('status',['aguardando_aprovacao','aprovado','aguardando_aprovacao_cliente'])
+    .order('semana_inicio',{ascending:false})
+    .limit(10);
+
+  const sel=document.getElementById('ag-semana');
+  sel.innerHTML='<option value="">Selecione a semana...</option>';
+  (semanas||[]).forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id;
+    o.textContent=`Semana ${s.semana_inicio} → ${s.semana_fim} (${s.status})`;
+    sel.appendChild(o);
+  });
+
+  // Sugerir próximas datas baseado na config do cliente
+  const dias=cliente?.pub_dias||['1','3','5'];
+  const horario=cliente?.pub_horario||'08:00';
+  const proximas=[];
+  const agora=new Date();
+  for(let i=1;i<=14;i++){
+    const d=new Date(agora);d.setDate(agora.getDate()+i);
+    if(dias.includes(String(d.getDay()))||dias.includes(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'][d.getDay()])){
+      proximas.push(d.toISOString().split('T')[0]);
+    }
+    if(proximas.length>=3)break;
+  }
+
+  const wrap=document.getElementById('datas-sugeridas');
+  if(proximas.length){
+    wrap.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📅 Próximas datas sugeridas:</div>'
+      +proximas.map(d=>`<button class="btn btn-sm btn-secondary" style="margin:2px;font-size:11px" onclick="document.getElementById('ag-data').value='${d}'">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'})}</button>`).join('');
+  }else{wrap.innerHTML=''}
+}
+
+async function salvarAgendamento(){
+  const clienteId=document.getElementById('ag-cliente').value;
+  const semanaId=document.getElementById('ag-semana').value;
+  const data=document.getElementById('ag-data').value;
+  const horario=document.getElementById('ag-horario').value;
+  const tipo=document.getElementById('ag-tipo').value;
+  if(!clienteId||!data){document.getElementById('agendar-status').innerHTML='<div class="status-bar error">Preencha cliente e data.</div>';return}
+  const spin=document.getElementById('spin-agendar');const btn=document.getElementById('btn-agendar');
+  spin.style.display='inline-block';btn.disabled=true;
+  try{
+    const{error}=await sb.from('calendario_editorial').insert({
+      cliente_id:clienteId,semana_id:semanaId||null,
+      data_publicacao:data,horario_publicacao:horario,
+      tipo,status:'agendado'
+    });
+    if(error)throw new Error(error.message);
+    toast('Agendamento criado!','ok');
+    closeModal('modal-agendar');
+    loadCalendario();loadAgenda();
+  }catch(e){document.getElementById('agendar-status').innerHTML=`<div class="status-bar error">${e.message}</div>`}
+  finally{spin.style.display='none';btn.disabled=false}
+}
+
+// ─── PUBLICAR AGORA ───────────────────────────────────────────
+async function publicarAgora(calendarioId){
+  if(!confirm('Publicar este conteúdo agora no WordPress?'))return;
+  const ag=await sb.from('calendario_editorial').select('*').eq('id',calendarioId).single();
+  if(!ag.data)return;
+  toast('Publicando...','');
+  try{
+    const resp=await fetch(PROXY+'/publicar-wordpress',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
+      body:JSON.stringify({
+        calendario_id:calendarioId,
+        semana_id:ag.data.semana_id,
+        cliente_id:ag.data.cliente_id
+      })
+    });
+    const data=await resp.json();
+    if(data.success){
+      toast('Publicado com sucesso!','ok');
+      if(data.post_url)window.open(data.post_url,'_blank');
+      loadAgenda();loadCalendario();
+    }else throw new Error(data.error);
+  }catch(e){toast('Erro: '+e.message,'err')}
+}
+
+async function deletarAgendamento(id){
+  if(!confirm('Excluir este agendamento?'))return;
+  await sb.from('calendario_editorial').delete().eq('id',id);
+  loadAgenda();loadCalendario();
+  toast('Agendamento excluído.','ok');
+}
+
+// ─── CONFIG CLIENTE ───────────────────────────────────────────
+function loadConfigClientes(){
+  const el=document.getElementById('config-lista');
+  if(!clientes.length){el.innerHTML='<div style="color:var(--text3);font-size:13px">Nenhum cliente ativo.</div>';return}
+  el.innerHTML=clientes.map(c=>{
+    const dias=(c.pub_dias||['1','3','5']).map(d=>diasNomes[parseInt(d)]||d).join(', ');
+    return`<div class="cliente-config">
+      <div class="cliente-config-header">
+        <div class="cliente-nome">${c.nome_negocio}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge ${c.ativo_publicacao?'badge-publicado':'badge-pendente'}">${c.ativo_publicacao?'Auto-publish ativo':'Manual'}</span>
+          <button class="btn btn-sm btn-secondary" onclick="openConfigCliente('${c.id}')">⚙️ Configurar</button>
+        </div>
+      </div>
+      <div class="cliente-config-body">
+        <div><span style="color:var(--text3)">WordPress:</span> ${c.wp_url||'Não configurado'}</div>
+        <div><span style="color:var(--text3)">Dias:</span> ${dias}</div>
+        <div><span style="color:var(--text3)">Horário:</span> ${c.pub_horario||'08:00'}</div>
+        <div><span style="color:var(--text3)">Usuário WP:</span> ${c.wp_usuario||'—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openConfigCliente(id){
+  configClienteId=id;
+  const c=clientes.find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('config-modal-title').textContent='Configurar — '+c.nome_negocio;
+  document.getElementById('cfg-wp-url').value=c.wp_url||'';
+  document.getElementById('cfg-wp-user').value=c.wp_usuario||'';
+  document.getElementById('cfg-wp-senha').value=c.wp_senha_app||'';
+  document.getElementById('cfg-horario').value=c.pub_horario||'08:00';
+  document.getElementById('cfg-ativo-pub').value=String(c.ativo_publicacao!==false);
+  document.getElementById('wp-test-status').innerHTML='';
+  document.getElementById('config-status').innerHTML='';
+  // Setar dias
+  const dias=c.pub_dias||['1','3','5'];
+  document.querySelectorAll('#dias-grid .dia-btn').forEach(btn=>{
+    const d=btn.dataset.dia;
+    btn.classList.toggle('on',dias.includes(d)||dias.includes(['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][parseInt(d)]));
+  });
+  document.getElementById('modal-config').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function toggleDia(btn){btn.classList.toggle('on')}
+
+async function testarWP(){
+  const url=document.getElementById('cfg-wp-url').value.trim();
+  const user=document.getElementById('cfg-wp-user').value.trim();
+  const senha=document.getElementById('cfg-wp-senha').value.trim();
+  const status=document.getElementById('wp-test-status');
+  if(!url||!user||!senha){status.innerHTML='<div style="font-size:12px;color:var(--red)">Preencha URL, usuário e senha.</div>';return}
+  status.innerHTML='<div style="font-size:12px;color:var(--text3)">Testando conexão...</div>';
+  try{
+    const resp=await fetch(PROXY+'/testar-wordpress',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
+      body:JSON.stringify({wp_url:url,wp_usuario:user,wp_senha_app:senha})
+    });
+    const data=await resp.json();
+    if(data.success){status.innerHTML='<div style="font-size:12px;color:var(--green)">✓ Conexão funcionando! Site: '+data.site_name+'</div>'}
+    else throw new Error(data.error||'Falha na conexão');
+  }catch(e){status.innerHTML='<div style="font-size:12px;color:var(--red)">✕ '+e.message+'</div>'}
+}
+
+async function salvarConfigCliente(){
+  const spin=document.getElementById('spin-config');const btn=document.getElementById('btn-salvar-config');
+  spin.style.display='inline-block';btn.disabled=true;
+  const dias=Array.from(document.querySelectorAll('#dias-grid .dia-btn.on')).map(b=>b.dataset.dia);
+  try{
+    const{error}=await sb.from('clientes').update({
+      wp_url:document.getElementById('cfg-wp-url').value||null,
+      wp_usuario:document.getElementById('cfg-wp-user').value||null,
+      wp_senha_app:document.getElementById('cfg-wp-senha').value||null,
+      pub_horario:document.getElementById('cfg-horario').value,
+      pub_dias:dias,
+      ativo_publicacao:document.getElementById('cfg-ativo-pub').value==='true',
+    }).eq('id',configClienteId);
+    if(error)throw new Error(error.message);
+    toast('Configuração salva!','ok');
+    closeModal('modal-config');
+    await loadClientes();
+    loadConfigClientes();
+  }catch(e){document.getElementById('config-status').innerHTML=`<div class="status-bar error">${e.message}</div>`}
+  finally{spin.style.display='none';btn.disabled=false}
+}
+
+function openModal(id){document.getElementById(id).classList.add('show');document.body.style.overflow='hidden'}
+function closeModal(id){document.getElementById(id).classList.remove('show');document.body.style.overflow=''}
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  setTimeout(()=>t.classList.add('show'),10);
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)closeModal(el.id)});
+});
+</script>
+</body>
+</html>
