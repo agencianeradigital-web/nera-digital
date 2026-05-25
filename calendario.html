@@ -266,7 +266,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div id="wp-test-status" style="margin-top:8px"></div>
 
       <div class="divider"></div>
-      <div class="section-title">Periodicidade de publicação</div>
+      <div class="section-title">Google Meu Negócio</div>
+      <div style="margin-bottom:12px">
+        <button class="btn btn-secondary btn-sm" onclick="autorizarGMN()">🔗 Autorizar Google Meu Negócio</button>
+        <div class="hint" style="margin-top:6px">Autorize para conectar os locais do GMN deste cliente</div>
+      </div>
+      <div class="field" id="gmn-local-wrap" style="display:none">
+        <label>Local do GMN</label>
+        <select id="cfg-gmn-location">
+          <option value="">Selecione o local...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ID do local (manual)</label>
+        <input type="text" id="cfg-gmn-location-id" placeholder="locations/XXXXXXXXXXXXXXXXX">
+        <div class="hint">Preencha manualmente se souber o ID do local</div>
+      </div>
       <div class="field"><label>Dias de publicação</label>
         <div class="dias-grid" id="dias-grid">
           <div class="dia-btn" data-dia="0" onclick="toggleDia(this)">Dom</div>
@@ -499,18 +514,20 @@ async function salvarAgendamento(){
 
 // ─── PUBLICAR AGORA ───────────────────────────────────────────
 async function publicarAgora(calendarioId){
-  if(!confirm('Publicar este conteúdo agora no WordPress?'))return;
-  const ag=await sb.from('calendario_editorial').select('*').eq('id',calendarioId).single();
-  if(!ag.data)return;
+  const{data:ag}=await sb.from('calendario_editorial').select('*').eq('id',calendarioId).single();
+  if(!ag)return;
+  const tipo=ag.tipo||'blog';
+  const endpoint=tipo==='gmn'?'publicar-gmn':'publicar-wordpress';
+  if(!confirm(`Publicar este conteúdo (${tipo}) agora?`))return;
   toast('Publicando...','');
   try{
-    const resp=await fetch(PROXY+'/publicar-wordpress',{
+    const resp=await fetch(PROXY+'/'+endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
       body:JSON.stringify({
         calendario_id:calendarioId,
-        semana_id:ag.data.semana_id,
-        cliente_id:ag.data.cliente_id
+        semana_id:ag.semana_id,
+        cliente_id:ag.cliente_id
       })
     });
     const data=await resp.json();
@@ -563,8 +580,12 @@ function openConfigCliente(id){
   document.getElementById('cfg-wp-senha').value=c.wp_senha_app||'';
   document.getElementById('cfg-horario').value=c.pub_horario||'08:00';
   document.getElementById('cfg-ativo-pub').value=String(c.ativo_publicacao!==false);
+  document.getElementById('cfg-gmn-location-id').value=c.gmn_location_id||'';
   document.getElementById('wp-test-status').innerHTML='';
   document.getElementById('config-status').innerHTML='';
+
+  // Carregar locations GMN se existirem
+  carregarLocationsGMN(id);
   // Setar dias
   const dias=c.pub_dias||['1','3','5'];
   document.querySelectorAll('#dias-grid .dia-btn').forEach(btn=>{
@@ -608,6 +629,7 @@ async function salvarConfigCliente(){
       pub_horario:document.getElementById('cfg-horario').value,
       pub_dias:dias,
       ativo_publicacao:document.getElementById('cfg-ativo-pub').value==='true',
+      gmn_location_id:document.getElementById('cfg-gmn-location-id').value||document.getElementById('cfg-gmn-location').value||null,
     }).eq('id',configClienteId);
     if(error)throw new Error(error.message);
     toast('Configuração salva!','ok');
@@ -618,7 +640,48 @@ async function salvarConfigCliente(){
   finally{spin.style.display='none';btn.disabled=false}
 }
 
-function openModal(id){document.getElementById(id).classList.add('show');document.body.style.overflow='hidden'}
+function autorizarGMN(){
+  if(!configClienteId){toast('Selecione um cliente primeiro','err');return}
+  const scope='https://www.googleapis.com/auth/business.manage';
+  const clientId='321725219758-ua8uqrvitol8bfk1421va2c0b7b2k1fv.apps.googleusercontent.com';
+  const redirect='https://nera-digital-delta.vercel.app/oauth-gmn.html';
+  const url='https://accounts.google.com/o/oauth2/v2/auth'
+    +'?client_id='+encodeURIComponent(clientId)
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&response_type=code'
+    +'&scope='+encodeURIComponent(scope)
+    +'&access_type=offline'
+    +'&prompt=consent'
+    +'&state='+encodeURIComponent(configClienteId);
+  window.open(url,'_blank');
+  toast('Autorize na janela que abriu e volte aqui','');
+  setTimeout(()=>carregarLocationsGMN(configClienteId),5000);
+}
+
+async function carregarLocationsGMN(clienteId){
+  const{data}=await sb.from('configuracoes')
+    .select('valor')
+    .eq('chave','gmn_locations_'+clienteId)
+    .single();
+  if(!data)return;
+  try{
+    const locations=JSON.parse(data.valor||'[]');
+    if(!locations.length)return;
+    const sel=document.getElementById('cfg-gmn-location');
+    sel.innerHTML='<option value="">Selecione o local...</option>';
+    locations.forEach((l:any)=>{
+      const o=document.createElement('option');
+      o.value=l.location_id;
+      o.textContent=l.location_title||l.location_id;
+      sel.appendChild(o);
+    });
+    // Pré-selecionar se já tiver
+    const c=clientes.find(x=>x.id===clienteId);
+    if(c?.gmn_location_id)sel.value=c.gmn_location_id;
+    document.getElementById('gmn-local-wrap').style.display='block';
+    toast(locations.length+' locais GMN carregados!','ok');
+  }catch(e){}
+}
 function closeModal(id){document.getElementById(id).classList.remove('show');document.body.style.overflow=''}
 function toast(msg,type){
   const t=document.getElementById('toast');
