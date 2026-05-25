@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autorizando Google — Nera Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f4f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{background:#fff;border-radius:16px;padding:40px;max-width:440px;width:100%;text-align:center;border:1px solid #e0e2f0;box-shadow:0 4px 24px rgba(91,91,214,.08)}
+.logo{width:48px;height:48px;background:#5B5BD6;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin:0 auto 20px}
+.title{font-size:20px;font-weight:600;color:#1a1060;margin-bottom:8px}
+.sub{font-size:14px;color:#8888aa;margin-bottom:28px;line-height:1.6}
+.status{font-size:14px;color:#4a4a7a;margin-bottom:20px}
+.status.success{color:#1a9e5a}
+.status.error{color:#e03030}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:32px;height:32px;border:3px solid rgba(91,91,214,.2);border-top-color:#5B5BD6;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 20px}
+.btn{display:inline-block;background:#5B5BD6;color:#fff;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none;margin-top:16px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif}
+.btn:hover{background:#4848b8}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">N</div>
+  <div class="title">Nera Digital</div>
+  <div class="sub" id="sub">Processando autorização do Google...</div>
+  <div class="spinner" id="spinner"></div>
+  <div class="status" id="status"></div>
+  <div id="btn-wrap"></div>
+</div>
+
+<script>
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+
+  if (error) {
+    showError('Autorização negada. Tente novamente.');
+    return;
+  }
+
+  if (!code) {
+    showError('Código de autorização não encontrado.');
+    return;
+  }
+
+  document.getElementById('sub').textContent = 'Trocando código por token de acesso...';
+
+  try {
+    const resp = await fetch('https://dcsxhdqwdoxbwgokzlea.supabase.co/functions/v1/google-oauth-callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'
+      },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await resp.json();
+
+    if (data.success) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('sub').textContent = 'Google autorizado com sucesso!';
+      document.getElementById('status').className = 'status success';
+      document.getElementById('status').textContent = '✓ O sistema agora pode criar Google Docs automaticamente.';
+      document.getElementById('btn-wrap').innerHTML = '<a href="index.html" class="btn">Voltar ao gerador</a>';
+    } else {
+      showError(data.error || 'Erro ao processar autorização.');
+    }
+  } catch (e) {
+    showError('Erro de conexão: ' + e.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('sub').textContent = 'Algo deu errado';
+  document.getElementById('status').className = 'status error';
+  document.getElementById('status').textContent = msg;
+  document.getElementById('btn-wrap').innerHTML = '<a href="index.html" class="btn">Voltar</a>';
+}
+
+handleCallback();
+</script>
+</body>
+</html>
