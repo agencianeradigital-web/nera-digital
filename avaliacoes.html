@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avaliações GMN — Nera Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f9;--surface:#fff;--surface2:#f0f1f8;--surface3:#e8eaf4;--border:#e0e2f0;--border2:#c8cae8;--text:#1a1060;--text2:#4a4a7a;--text3:#8888aa;--accent:#5B5BD6;--accent2:#4848b8;--accent-dim:rgba(91,91,214,.08);--accent-dim2:rgba(91,91,214,.16);--gold:#F5A623;--gold-dim:rgba(245,166,35,.12);--red:#e03030;--red-dim:rgba(224,48,48,.08);--green:#1a9e5a;--green-dim:rgba(26,158,90,.1);--radius:10px;--radius-lg:16px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff}
+.logo-name{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3)}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 6px;padding:0 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.2)}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.nav-item.active .nav-dot{opacity:1}
+.main{padding:36px 40px;overflow-y:auto}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.page-title{font-size:22px;font-weight:600}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:4px}
+.stat-value{font-size:22px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace}
+.filters{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s}
+.filter-btn:hover{background:var(--surface2)}
+.filter-btn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,91,214,.3)}
+.av-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:12px;transition:box-shadow .2s}
+.av-card:hover{box-shadow:0 2px 12px rgba(91,91,214,.08)}
+.av-card.respondido{opacity:.7;border-color:var(--green);background:rgba(26,158,90,.02)}
+.av-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.av-autor{font-size:14px;font-weight:600;color:var(--text)}
+.av-cliente{font-size:12px;color:var(--text3);margin-top:2px}
+.av-estrelas{font-size:18px;letter-spacing:2px}
+.av-data{font-size:11px;color:var(--text3)}
+.av-comentario{font-size:13px;color:var(--text2);line-height:1.6;font-style:italic;margin-bottom:16px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border-left:3px solid var(--border2)}
+.av-resposta{margin-bottom:14px}
+.av-resposta label{display:block;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.av-resposta textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;resize:vertical;min-height:80px;line-height:1.5;transition:border-color .15s}
+.av-resposta textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim2)}
+.av-actions{display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red-dim)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.badge-pendente{background:var(--gold-dim);color:var(--gold)}
+.badge-respondido{background:var(--green-dim);color:var(--green)}
+.respondido-info{font-size:12px;color:var(--green);padding:10px 14px;background:var(--green-dim);border-radius:var(--radius);border:1px solid rgba(26,158,90,.2)}
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px}
+.status-bar.info{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(91,91,214,.2)}
+.status-bar.error{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,48,48,.2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+.empty{text-align:center;padding:48px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <div><div class="logo-name">Nera Digital</div><div class="logo-sub">Avaliações GMN</div></div>
+  </div>
+  <div class="nav-label">Menu</div>
+  <div class="nav-item" onclick="go('index.html')"><div class="nav-dot"></div>Gerar conteúdo</div>
+  <div class="nav-item" onclick="go('cadastro-clientes.html')"><div class="nav-dot"></div>Clientes</div>
+  <div class="nav-item" onclick="go('calendario.html')"><div class="nav-dot"></div>Calendário</div>
+  <div class="nav-item active"><div class="nav-dot"></div>Avaliações GMN</div>
+  <div class="nav-item" onclick="go('financeiro.html')"><div class="nav-dot"></div>Financeiro</div>
+  <div class="nav-item" onclick="go('painel-agencia.html')"><div class="nav-dot"></div>Painel</div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div><div class="page-title">Avaliações GMN</div><div class="page-sub">Monitore e responda avaliações dos seus clientes</div></div>
+    <button class="btn btn-primary" onclick="monitorarAgora()">
+      <span class="spinner" id="spin-monitor" style="display:none"></span>
+      🔄 Monitorar agora
+    </button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total de avaliações</div><div class="stat-value" id="stat-total">0</div></div>
+    <div class="stat"><div class="stat-label">Pendentes</div><div class="stat-value" id="stat-pendentes" style="color:var(--gold)">0</div></div>
+    <div class="stat"><div class="stat-label">Respondidas</div><div class="stat-value" id="stat-respondidas" style="color:var(--green)">0</div></div>
+    <div class="stat"><div class="stat-label">Média de estrelas</div><div class="stat-value" id="stat-media" style="color:var(--gold)">—</div></div>
+  </div>
+
+  <div class="filters">
+    <select id="filtro-cliente" onchange="loadAvaliacoes()" style="font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--text);outline:none">
+      <option value="">Todos os clientes</option>
+    </select>
+    <button class="filter-btn active" id="filtro-todas" onclick="setFiltro('todas')">Todas</button>
+    <button class="filter-btn" id="filtro-pendente" onclick="setFiltro('pendente')">⏳ Pendentes</button>
+    <button class="filter-btn" id="filtro-respondido" onclick="setFiltro('respondido')">✅ Respondidas</button>
+    <button class="filter-btn" id="filtro-negativas" onclick="setFiltro('negativas')">⚠️ Negativas (1-3★)</button>
+  </div>
+
+  <div id="page-status"></div>
+  <div id="avaliacoes-lista"></div>
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const sb=supabase.createClient(
+  'https://dcsxhdqwdoxbwgokzlea.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E'
+);
+const PROXY='https://dcsxhdqwdoxbwgokzlea.supabase.co/functions/v1';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
+
+const go=url=>window.location=url;
+let filtroAtual='todas';
+
+window.onload=()=>{loadClientes();loadAvaliacoes();checkApproveParam()};
+
+async function checkApproveParam(){
+  const params=new URLSearchParams(window.location.search);
+  const reviewId=params.get('approve');
+  if(!reviewId)return;
+  const{data}=await sb.from('avaliacoes_gmn').select('id').eq('review_id',reviewId).single();
+  if(data)aprovarResponder(data.id,true);
+}
+
+async function loadClientes(){
+  const{data}=await sb.from('clientes').select('id,nome_negocio').order('nome_negocio');
+  const sel=document.getElementById('filtro-cliente');
+  (data||[]).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id;o.textContent=c.nome_negocio;
+    sel.appendChild(o);
+  });
+}
+
+function setFiltro(filtro){
+  filtroAtual=filtro;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('filtro-'+filtro)?.classList.add('active');
+  loadAvaliacoes();
+}
+
+async function loadAvaliacoes(){
+  const clienteId=document.getElementById('filtro-cliente').value;
+  let query=sb.from('avaliacoes_gmn')
+    .select('*,clientes(nome_negocio)')
+    .order('data_avaliacao',{ascending:false})
+    .limit(50);
+  if(clienteId)query=query.eq('cliente_id',clienteId);
+  if(filtroAtual==='pendente')query=query.eq('status','pendente');
+  if(filtroAtual==='respondido')query=query.eq('status','respondido');
+  if(filtroAtual==='negativas')query=query.lte('nota',3);
+  const{data,error}=await query;
+  if(error){document.getElementById('page-status').innerHTML=`<div class="status-bar error">${error.message}</div>`;return}
+  const avaliacoes=data||[];
+  // Stats
+  document.getElementById('stat-total').textContent=avaliacoes.length;
+  document.getElementById('stat-pendentes').textContent=avaliacoes.filter(a=>a.status==='pendente').length;
+  document.getElementById('stat-respondidas').textContent=avaliacoes.filter(a=>a.status==='respondido').length;
+  const media=avaliacoes.length?avaliacoes.reduce((s,a)=>s+(a.nota||0),0)/avaliacoes.length:0;
+  document.getElementById('stat-media').textContent=media?media.toFixed(1)+'★':'—';
+  renderAvaliacoes(avaliacoes);
+}
+
+function renderAvaliacoes(lista){
+  const el=document.getElementById('avaliacoes-lista');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">⭐</div><div>Nenhuma avaliação encontrada.</div><div style="font-size:12px;margin-top:6px">Clique em "Monitorar agora" para buscar novas avaliações.</div></div>';
+    return;
+  }
+  el.innerHTML=lista.map(a=>{
+    const estrelas='⭐'.repeat(a.nota||0)+'☆'.repeat(5-(a.nota||0));
+    const dataFmt=a.data_avaliacao?new Date(a.data_avaliacao).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    const respondido=a.status==='respondido';
+    return`<div class="av-card ${respondido?'respondido':''}" id="card-${a.id}">
+      <div class="av-header">
+        <div>
+          <div class="av-autor">${a.autor||'Cliente'}</div>
+          <div class="av-cliente">${a.clientes?.nome_negocio||'—'} · ${dataFmt}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="av-estrelas">${estrelas}</div>
+          <span class="badge badge-${a.status}">${a.status}</span>
+        </div>
+      </div>
+      ${a.comentario?`<div class="av-comentario">"${a.comentario}"</div>`:'<div class="av-comentario" style="font-style:normal;color:var(--text3)">Avaliação sem comentário</div>'}
+      ${respondido
+        ?`<div class="respondido-info">✓ Respondido: "${a.resposta_publicada?.slice(0,100)}..."</div>`
+        :`<div class="av-resposta">
+          <label>Resposta sugerida pela IA — edite se necessário</label>
+          <textarea id="resp-${a.id}">${a.resposta_sugerida||''}</textarea>
+        </div>
+        <div class="av-actions">
+          <button class="btn btn-primary btn-sm" id="btn-${a.id}" onclick="aprovarResponder('${a.id}')">
+            <span class="spinner" id="spin-${a.id}" style="display:none"></span>
+            ✅ Aprovar e publicar
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="regenerarResposta('${a.id}','${a.nota}',this)">🔄 Regenerar</button>
+          <button class="btn btn-secondary btn-sm" onclick="ignorar('${a.id}')">Ignorar</button>
+        </div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+async function aprovarResponder(id, autoApprove=false){
+  const btn=document.getElementById('btn-'+id);
+  const spin=document.getElementById('spin-'+id);
+  if(btn)btn.disabled=true;
+  if(spin)spin.style.display='inline-block';
+  const textoEl=document.getElementById('resp-'+id);
+  const resposta=textoEl?.value||'';
+  try{
+    const resp=await fetch(PROXY+'/responder-avaliacao',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
+      body:JSON.stringify({avaliacao_id:id,resposta})
+    });
+    const data=await resp.json();
+    if(data.success){
+      toast('Resposta publicada no GMN!','ok');
+      loadAvaliacoes();
+    }else throw new Error(data.error);
+  }catch(e){
+    toast('Erro: '+e.message,'err');
+    if(btn)btn.disabled=false;
+    if(spin)spin.style.display='none';
+  }
+}
+
+async function regenerarResposta(id,nota,btn){
+  btn.textContent='Gerando...';btn.disabled=true;
+  const{data}=await sb.from('avaliacoes_gmn').select('comentario,cliente_id,clientes(nome_negocio,segmento,tom_voz)').eq('id',id).single();
+  // Chamar proxy anthropic para regenerar
+  const resp=await fetch(PROXY+'/proxy-anthropic',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
+    body:JSON.stringify({
+      anthropic_key:localStorage.getItem('nd_anthropic'),
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:300,
+      messages:[{role:'user',content:`Escreva uma resposta profissional diferente para avaliação de ${nota} estrelas da empresa ${data?.clientes?.nome_negocio||'empresa'} (${data?.clientes?.segmento||'serviços'}). Comentário: "${data?.comentario||'sem comentário'}". Máximo 150 palavras, sem emojis, tom ${data?.clientes?.tom_voz||'profissional'}.`}]
+    })
+  });
+  const respData=await resp.json();
+  const texto=respData.content?.[0]?.text||'';
+  if(texto){
+    document.getElementById('resp-'+id).value=texto;
+    await sb.from('avaliacoes_gmn').update({resposta_sugerida:texto}).eq('id',id);
+    toast('Nova resposta gerada!','ok');
+  }
+  btn.textContent='🔄 Regenerar';btn.disabled=false;
+}
+
+async function ignorar(id){
+  await sb.from('avaliacoes_gmn').update({status:'ignorado'}).eq('id',id);
+  document.getElementById('card-'+id)?.remove();
+  toast('Avaliação ignorada','ok');
+}
+
+async function monitorarAgora(){
+  const spin=document.getElementById('spin-monitor');
+  spin.style.display='inline-block';
+  try{
+    const resp=await fetch(PROXY+'/monitorar-avaliacoes',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ANON},
+      body:JSON.stringify({})
+    });
+    const data=await resp.json();
+    if(data.success){
+      toast(data.novas>0?data.novas+' nova(s) avaliação(ões)!':'Nenhuma nova avaliação','ok');
+      loadAvaliacoes();
+    }else throw new Error(data.error||'Erro ao monitorar');
+  }catch(e){toast('Erro: '+e.message,'err')}
+  finally{spin.style.display='none'}
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  setTimeout(()=>t.classList.add('show'),10);
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
