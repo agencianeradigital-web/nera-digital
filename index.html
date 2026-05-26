@@ -117,7 +117,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .api-wrap{position:relative}
 .api-wrap input{padding-right:72px;font-family:'DM Mono',monospace;font-size:12px}
 .api-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2)}
-.api-toggle:hover{color:var(--text)}
 .divider{height:1px;background:var(--border);margin:20px 0}
 .hist-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;background:var(--surface);cursor:pointer;transition:all .15s}
 .hist-item:hover{border-color:var(--border2);background:var(--surface2)}
@@ -130,8 +129,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .spinner{width:14px;height:14px;border:2px solid rgba(91,91,214,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeIn .3s ease forwards}
-.meta-box{background:var(--accent-dim);border:1px solid rgba(91,91,214,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);line-height:1.8}
+.meta-box{background:var(--accent-dim);border:1px solid rgba(91,91,214,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.8}
 .meta-box strong{color:var(--accent);font-weight:600}
+.meta-box .meta-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:4px}
+.meta-box .meta-label{color:var(--text3);font-size:11px;min-width:120px;flex-shrink:0;font-weight:500}
+.meta-box .meta-val{color:var(--text);font-size:12px;font-family:'DM Mono',monospace}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.ok{background:var(--green)}
@@ -189,7 +191,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
   <div id="form-section">
 
-    <!-- CARREGAR CLIENTE -->
     <div class="card">
       <div class="card-title">Carregar dados de um cliente</div>
       <div class="grid2">
@@ -392,31 +393,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── SUPABASE ─────────────────────────────────────────────────
 const SUPA_URL='https://dcsxhdqwdoxbwgokzlea.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3hoZHF3ZG94Yndnb2t6bGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODkxMTcsImV4cCI6MjA5MTM2NTExN30.StReq9QRsQ87OftrnVUSRIUKNjhXlZdLddx7HnlcB2E';
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const PROXY_BASE='https://dcsxhdqwdoxbwgokzlea.supabase.co/functions/v1';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-// ─── STATE ────────────────────────────────────────────────────
 const activePlats=new Set(['blog','gmn','instagram','facebook','linkedin','image']);
 let generatedContent={};
+let generatedAnalise={};
 let isGenerating=false;
 let clienteSelecionadoId=null;
+let clienteSelecionado=null;
 
-// ─── INIT ─────────────────────────────────────────────────────
-window.onload=()=>{
-  loadConfig();
-  renderHistory();
-  updateStatus();
-  loadClientes();
-};
+window.onload=()=>{loadConfig();renderHistory();updateStatus();loadClientes()};
 
-// ─── CARREGAR CLIENTES ────────────────────────────────────────
+// ─── CLIENTES ─────────────────────────────────────────────────
 async function loadClientes(){
   try{
-    const{data,error}=await sb.from('clientes').select('*').order('nome_negocio');
-    if(error||!data||!data.length)return;
+    const{data}=await sb.from('clientes').select('*').order('nome_negocio');
+    if(!data||!data.length)return;
     const sel=document.getElementById('f-cliente-select');
     data.forEach(c=>{
       const opt=document.createElement('option');
@@ -425,6 +420,10 @@ async function loadClientes(){
       opt.dataset.cliente=JSON.stringify(c);
       sel.appendChild(opt);
     });
+    // Auto-selecionar se vier ?cliente= na URL
+    const params=new URLSearchParams(window.location.search);
+    const cid=params.get('cliente');
+    if(cid){sel.value=cid;carregarCliente();}
   }catch(e){console.log('Erro ao carregar clientes:',e)}
 }
 
@@ -432,57 +431,45 @@ function carregarCliente(){
   const sel=document.getElementById('f-cliente-select');
   const opt=sel.options[sel.selectedIndex];
   if(!opt||!opt.value){limparCliente();return;}
-
   const c=JSON.parse(opt.dataset.cliente||'{}');
   clienteSelecionadoId=c.id;
-
-  // Preencher campos do formulário
+  clienteSelecionado=c;
   const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
-  set('f-biz', c.nome_negocio);
-  set('f-seg', c.segmento);
-  set('f-city', c.cidade);
-  set('f-kw', c.palavras_chave);
-  set('f-diff', c.diferenciais);
-  set('f-tone', c.tom_voz);
-  set('f-pages', c.paginas_site);
-  set('f-gmn', c.gmn_url);
-  set('f-author', c.autor_nome);
-  set('f-author-title', c.responsavel_cargo);
-  set('f-cred', c.autor_bio);
-
-  // Prompts por plataforma
+  set('f-biz',c.nome_negocio);
+  set('f-seg',c.segmento);
+  set('f-city',c.cidade);
+  set('f-kw',c.palavras_chave);
+  set('f-diff',c.diferenciais);
+  set('f-tone',c.tom_voz);
+  set('f-pages',c.paginas_site);
+  set('f-gmn',c.gmn_url);
+  set('f-author',c.autor_nome);
+  set('f-author-title',c.responsavel_cargo);
+  set('f-cred',c.autor_bio);
   if(c.prompt_blog||c.prompt_gmn||c.prompt_instagram||c.prompt_facebook||c.prompt_linkedin){
-    set('fp-blog', c.prompt_blog);
-    set('fp-gmn', c.prompt_gmn);
-    set('fp-instagram', c.prompt_instagram);
-    set('fp-facebook', c.prompt_facebook);
-    set('fp-linkedin', c.prompt_linkedin);
+    set('fp-blog',c.prompt_blog);set('fp-gmn',c.prompt_gmn);
+    set('fp-instagram',c.prompt_instagram);set('fp-facebook',c.prompt_facebook);
+    set('fp-linkedin',c.prompt_linkedin);
     document.getElementById('card-prompts-plat').style.display='block';
   }
-
-  // Plataformas ativas do cliente
   if(c.plataformas&&c.plataformas.length){
     activePlats.clear();
     ['blog','gmn','instagram','facebook','linkedin','image'].forEach(p=>{
       const el=document.getElementById('pt-'+p);
       if(c.plataformas.includes(p)){activePlats.add(p);el.classList.add('on');}
-      else{el.classList.remove('on');}
+      else el.classList.remove('on');
     });
-    activePlats.add('image'); // sempre incluir imagens
+    activePlats.add('image');
     document.getElementById('pt-image').classList.add('on');
   }
-
-  // Info box
   const info=document.getElementById('cliente-info');
   info.style.display='block';
-  info.innerHTML=`<strong>${c.nome_negocio}</strong> · ${c.segmento||'—'} · ${c.cidade||'—'}<br>
-    📧 ${c.email||'—'} · 📱 ${c.telefone||'—'}`;
-
+  info.innerHTML=`<strong>${c.nome_negocio}</strong> · ${c.segmento||'—'} · ${c.cidade||'—'}<br>📧 ${c.email||'—'} · 📱 ${c.telefone||'—'}`;
   toast('Dados de '+c.nome_negocio+' carregados!','ok');
 }
 
 function limparCliente(){
-  clienteSelecionadoId=null;
+  clienteSelecionadoId=null;clienteSelecionado=null;
   document.getElementById('f-cliente-select').value='';
   document.getElementById('cliente-info').style.display='none';
 }
@@ -492,40 +479,35 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const m={generator:0,history:1,config:6};
-  document.querySelectorAll('.nav-item')[m[id]||0]?.classList.add('active');
+  const items=document.querySelectorAll('.nav-item');
+  const map={generator:0,history:1,config:6};
+  if(items[map[id]||0])items[map[id]||0].classList.add('active');
   if(id==='history')renderHistory();
 }
 
 // ─── CONFIG ───────────────────────────────────────────────────
 function saveConfig(){
   ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
-    const el=document.getElementById('cfg-'+k);
-    if(el)localStorage.setItem('nd_'+k,el.value);
-  });
-  updateStatus();
+    const el=document.getElementById('cfg-'+k);if(el)localStorage.setItem('nd_'+k,el.value);
+  });updateStatus();
 }
 function loadConfig(){
   ['anthropic','openai','gemini','agency','site','wpp','prazo'].forEach(k=>{
-    const v=localStorage.getItem('nd_'+k);
-    const el=document.getElementById('cfg-'+k);
-    if(v&&el)el.value=v;
+    const v=localStorage.getItem('nd_'+k);const el=document.getElementById('cfg-'+k);if(v&&el)el.value=v;
   });
 }
 function updateStatus(){
   const a=!!localStorage.getItem('nd_anthropic');
   const o=!!localStorage.getItem('nd_openai');
   const g=!!localStorage.getItem('nd_gemini');
-  const dot=document.getElementById('sdot');
-  const txt=document.getElementById('stext');
+  const dot=document.getElementById('sdot');const txt=document.getElementById('stext');
   if(a&&o&&g){dot.className='sdot ok';txt.textContent='APIs configuradas'}
   else if(a&&o){dot.className='sdot ok';txt.textContent='Gemini não configurada'}
   else if(a){dot.className='sdot';txt.textContent='OpenAI não configurada'}
   else{dot.className='sdot';txt.textContent='APIs não configuradas'}
 }
 function toggleVis(id,btn){
-  const el=document.getElementById(id);
-  el.type=el.type==='password'?'text':'password';
+  const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';
   btn.textContent=el.type==='password'?'mostrar':'ocultar';
 }
 
@@ -544,8 +526,7 @@ async function startGeneration(){
   const anthropicKey=localStorage.getItem('nd_anthropic');
   if(!anthropicKey){toast('Configure a chave Anthropic primeiro','err');showPage('config');return}
   if(isGenerating)return;
-  isGenerating=true;
-  generatedContent={};
+  isGenerating=true;generatedContent={};generatedAnalise={};
   document.getElementById('form-section').style.display='none';
   document.getElementById('pipeline-section').style.display='block';
   document.getElementById('results-section').style.display='none';
@@ -560,10 +541,7 @@ async function startGeneration(){
       if(step.id==='img_capa')await generateDalleImage(step,ctx);
       else if(step.id==='img_social')await generateGeminiImage(step,ctx);
       else await generateText(step,ctx,anthropicKey);
-    }catch(e){
-      setError(step.id);
-      setResult(step.id,'Erro: '+e.message);
-    }
+    }catch(e){setError(step.id);setResult(step.id,'Erro: '+e.message);}
   }
 
   renderResults(steps);
@@ -616,7 +594,7 @@ function buildSteps(){
 function getPrompt(stepId,ctx){
   const base=`Empresa: ${ctx.biz}\nSegmento: ${ctx.seg}\nCidade: ${ctx.city}\nPalavra-chave: ${ctx.kw}\nServiço: ${ctx.service}\nIntenção: ${ctx.intent}\nDiferenciais: ${ctx.diff}\nTom: ${ctx.tone}\nAutor: ${ctx.author} — ${ctx.author_title} — ${ctx.cred}\nPáginas existentes: ${ctx.pages||'Nenhuma'}\nURL GMN: ${ctx.gmn_url||'Não informado'}\nExtras: ${ctx.extra||'Nenhum'}`;
   const prompts={
-    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\nSCHEMA: ${ctx.schema==='auto'?'Defina o melhor baseado na intenção':ctx.schema}\n\nGere análise SEO completa em JSON:\n{"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"imagem_nome":"slug.jpg","imagem_alt":"descrição em português com keyword","prompt_dalle":"prompt em PORTUGUÊS fotorrealista para capa, sem texto, sem logo","prompt_gemini":"prompt em PORTUGUÊS para imagem quadrada social, sem texto"}\n\nResponda APENAS com o JSON.`,
+    analise:`Aja como especialista SEO com 20+ anos de experiência.\n${base}\nSCHEMA: ${ctx.schema==='auto'?'Defina o melhor baseado na intenção':ctx.schema}\n\nGere análise SEO completa em JSON:\n{"keyword_principal":"","slug":"sem-acentos-ate-75-chars","intencao":"","titulo_seo":"max 60 chars com kw no início","meta_description":"150-160 chars com kw e CTA","lsi_terms":["8 termos"],"schema_recomendado":[],"h1_sugerido":"","table_of_contents":["5 seções"],"imagem_nome":"slug.jpg","imagem_alt":"descrição em português com keyword","prompt_dalle":"prompt em PORTUGUÊS fotorrealista para capa, sem texto, sem logo","prompt_gemini":"prompt em PORTUGUÊS para imagem quadrada social, sem texto"}\n\nResponda APENAS com o JSON válido.`,
     artigo:`Aja como especialista SEO e copywriter expert em conversão com 20+ anos de experiência.\n${base}\n${ctx.prompt_blog?'\nINSTRUÇÕES ESPECÍFICAS DO CLIENTE:\n'+ctx.prompt_blog+'\n':''}\nESCREVA um artigo completo em HTML semântico:\n1. MÍNIMO 2.000 palavras\n2. ESTRUTURA: Explicar → Exemplificar → Convencer → Conduzir à ação\n3. H2 sempre como perguntas, LSI nos headings\n4. Parágrafos curtos, direto ao ponto\n5. SEO RANK MATH: keyword nos primeiros 10%, density 1-1.5%\n6. Incluir [IMAGEM-1], [IMAGEM-2], [IMAGEM-3]\n7. 2 CTAs inline, SEM emojis, SEM preços\n8. Tipo: ${ctx.type==='pilar'?'ARTIGO PILAR':'ARTIGO SECUNDÁRIO'}\n\nAo final inclua:\n---SCHEMA---\nJSON-LD completo para WordPress com os schemas: ${ctx.schema==='auto'?'escolha os mais adequados':ctx.schema}`,
     gmn:`Crie UM ÚNICO post para Google Meu Negócio.\n${base}\n${ctx.prompt_gmn?'\nINSTRUÇÕES ESPECÍFICAS:\n'+ctx.prompt_gmn+'\n':''}\nRegras: máx 300 palavras, sem emojis, primeira frase com keyword, mencionar cidade, CTA claro, NUNCA mencionar preços.\n\nEntregue apenas o texto do post.`,
     instagram:`Crie UMA ÚNICA legenda para Instagram.\n${base}\n${ctx.prompt_instagram?'\nINSTRUÇÕES ESPECÍFICAS:\n'+ctx.prompt_instagram+'\n':''}\nRegras: abertura impactante nas primeiras 2 linhas, parágrafos curtos, sem emojis, CTA ao final, máx 2.200 chars, NUNCA mencionar preços.\n\nEntregue a legenda, depois:\n---HASHTAGS---\nGrupo 1 — Nicho (5)\nGrupo 2 — Localização (5)\nGrupo 3 — Alcance (5)`,
@@ -638,6 +616,13 @@ async function generateText(step,ctx,key){
   const data=await resp.json();
   const text=data.content?.[0]?.text||'';
   generatedContent[step.id]=text;
+  if(step.id==='analise'){
+    try{generatedAnalise=JSON.parse(text);}catch(e){
+      // tentar extrair JSON do texto
+      const m=text.match(/\{[\s\S]*\}/);
+      if(m)try{generatedAnalise=JSON.parse(m[0]);}catch(e2){}
+    }
+  }
   setResult(step.id,text.replace(/<[^>]+>/g,'').slice(0,120).replace(/\n/g,' ')+'...');
   setDone(step.id);
 }
@@ -646,7 +631,7 @@ async function generateDalleImage(step,ctx){
   const key=localStorage.getItem('nd_openai');
   if(!key)throw new Error('Chave OpenAI não configurada');
   let prompt=`Imagem fotorrealista profissional para empresa brasileira "${ctx.biz}" do segmento ${ctx.seg} em ${ctx.city}. Serviço: ${ctx.service}. Estilo editorial limpo, iluminação natural, sem texto, sem logo, alta qualidade.`;
-  if(generatedContent.analise){try{const a=JSON.parse(generatedContent.analise);if(a.prompt_dalle)prompt=a.prompt_dalle+' Photorealistic, professional, Brazil, no text, no logos.'}catch(e){}}
+  if(generatedAnalise.prompt_dalle)prompt=generatedAnalise.prompt_dalle+' Photorealistic, professional, Brazil, no text, no logos.';
   const resp=await fetch(PROXY_BASE+'/proxy-openai',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
@@ -665,7 +650,7 @@ async function generateGeminiImage(step,ctx){
   const key=localStorage.getItem('nd_gemini');
   if(!key)throw new Error('Chave Gemini não configurada');
   let prompt=`Imagem quadrada para redes sociais, empresa brasileira "${ctx.biz}" do segmento ${ctx.seg} em ${ctx.city}. Estilo profissional, limpo e moderno, fotorrealista, sem texto sobreposto.`;
-  if(generatedContent.analise){try{const a=JSON.parse(generatedContent.analise);if(a.prompt_gemini)prompt=a.prompt_gemini}catch(e){}}
+  if(generatedAnalise.prompt_gemini)prompt=generatedAnalise.prompt_gemini;
   const resp=await fetch(PROXY_BASE+'/proxy-gemini',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
@@ -705,16 +690,9 @@ function setRunning(id){
   document.getElementById('pb-'+id).classList.add('show');
   let w=0;const iv=setInterval(()=>{w=Math.min(w+3,88);document.getElementById('pf-'+id).style.width=w+'%';if(w>=88)clearInterval(iv)},100);
 }
-function setDone(id){
-  const n=document.getElementById('pn-'+id);n.className='pipe-num done';n.textContent='✓';
-  const f=document.getElementById('pf-'+id);if(f)f.style.width='100%';
-}
-function setError(id){
-  const n=document.getElementById('pn-'+id);n.className='pipe-num error';n.textContent='✕';
-}
-function setResult(id,text){
-  const el=document.getElementById('pr-'+id);el.textContent=text;el.classList.add('show');
-}
+function setDone(id){const n=document.getElementById('pn-'+id);n.className='pipe-num done';n.textContent='✓';const f=document.getElementById('pf-'+id);if(f)f.style.width='100%';}
+function setError(id){const n=document.getElementById('pn-'+id);n.className='pipe-num error';n.textContent='✕';}
+function setResult(id,text){const el=document.getElementById('pr-'+id);el.textContent=text;el.classList.add('show');}
 
 // ─── RESULTADOS ───────────────────────────────────────────────
 function renderResults(steps){
@@ -722,31 +700,35 @@ function renderResults(steps){
   const contents=document.getElementById('result-contents');
   tabs.innerHTML='';contents.innerHTML='';
 
+  // Meta box com todas as informações SEO
   let metaHtml='';
-  if(generatedContent.analise){
-    try{
-      const a=JSON.parse(generatedContent.analise);
-      metaHtml=`<div class="meta-box">
-        <strong>Keyword:</strong> ${a.keyword_principal||''} &nbsp;|&nbsp;
-        <strong>Slug:</strong> /${a.slug||''} &nbsp;|&nbsp;
-        <strong>Schema:</strong> ${(a.schema_recomendado||[]).join(', ')}<br>
-        <strong>Título SEO:</strong> ${a.titulo_seo||''}<br>
-        <strong>Meta:</strong> ${a.meta_description||''}<br>
-        <strong>LSI:</strong> ${(a.lsi_terms||[]).join(', ')}
-      </div>`;
-    }catch(e){}
+  const a=generatedAnalise;
+  if(a&&a.keyword_principal){
+    metaHtml=`<div class="meta-box">
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📊 Dados SEO gerados</div>
+      <div class="meta-row"><span class="meta-label">Keyword principal</span><span class="meta-val" style="color:var(--accent);font-weight:600">${a.keyword_principal||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Meta Title</span><span class="meta-val">${a.titulo_seo||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Meta Description</span><span class="meta-val">${a.meta_description||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Slug</span><span class="meta-val" style="color:var(--green)">/${a.slug||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Schema</span><span class="meta-val">${(a.schema_recomendado||[]).join(', ')}</span></div>
+      <div class="meta-row"><span class="meta-label">Imagem</span><span class="meta-val">${a.imagem_nome||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Alt da imagem</span><span class="meta-val">${a.imagem_alt||''}</span></div>
+      <div class="meta-row"><span class="meta-label">Termos LSI</span><span class="meta-val">${(a.lsi_terms||[]).join(', ')}</span></div>
+      ${a.h1_sugerido?`<div class="meta-row"><span class="meta-label">H1 sugerido</span><span class="meta-val">${a.h1_sugerido}</span></div>`:''}
+    </div>`;
   }
   document.getElementById('meta-section').innerHTML=metaHtml;
 
+  // Extrair schema do artigo
   if(generatedContent.artigo){
-    const schemaMatch=generatedContent.artigo.match(/---SCHEMA---\n([\s\S]*?)$/);
+    const schemaMatch=generatedContent.artigo.match(/---SCHEMA---\n?([\s\S]*?)$/);
     if(schemaMatch){
       generatedContent.schema=schemaMatch[1].trim();
       generatedContent.artigo=generatedContent.artigo.replace(/---SCHEMA---[\s\S]*$/,'').trim();
     }
   }
 
-  const labels={analise:'Análise SEO',artigo:'Artigo',gmn:'GMN',instagram:'Instagram',facebook:'Facebook',linkedin:'LinkedIn',img_capa:'Capa (DALL-E)',img_social:'Social (Gemini)',schema:'Schema JSON-LD'};
+  const labels={analise:'Análise SEO',artigo:'Artigo',gmn:'GMN',instagram:'Instagram',facebook:'Facebook',linkedin:'LinkedIn',img_capa:'Capa (DALL-E)',img_social:'Social (Gemini)'};
   let first=true;
   steps.forEach(s=>{
     if(!generatedContent[s.id])return;
@@ -768,15 +750,14 @@ function renderResults(steps){
     first=false;
   });
 
-  // Tab schema se existir
+  // Tab Schema JSON-LD
   if(generatedContent.schema){
     const tab=document.createElement('button');
     tab.className='rtab';tab.textContent='Schema JSON-LD';
     tab.onclick=()=>{
       document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.rtab-content').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('rc-schema').classList.add('active');
+      tab.classList.add('active');document.getElementById('rc-schema').classList.add('active');
     };
     tabs.appendChild(tab);
     const pane=document.createElement('div');
@@ -793,8 +774,7 @@ function renderBlock(id){
     return`<div class="content-block"><div class="content-block-header"><div class="content-block-title">Imagem de capa — DALL-E 3</div>${url?`<a href="${url}" target="_blank" class="copy-btn">Abrir original</a>`:''}</div>${url?`<div class="img-preview"><img src="${url}" alt="Capa gerada"></div><div style="font-size:12px;color:var(--text3)">URL expira em 1h. Baixe agora.</div>`:`<div class="img-preview">Imagem não disponível</div>`}</div>`;
   }
   if(id==='img_social'){
-    const b64=generatedContent['img_social_b64'];
-    const mime=generatedContent['img_social_mime']||'image/jpeg';
+    const b64=generatedContent['img_social_b64'];const mime=generatedContent['img_social_mime']||'image/jpeg';
     return`<div class="content-block"><div class="content-block-header"><div class="content-block-title">Imagem social — Gemini</div>${b64?`<a href="data:${mime};base64,${b64}" download="social.jpg" class="copy-btn">Baixar imagem</a>`:''}</div>${b64?`<div class="img-preview"><img src="data:${mime};base64,${b64}" alt="Imagem social"></div>`:`<div class="img-preview">Imagem não disponível</div>`}</div>`;
   }
   if(id==='analise'){
@@ -809,11 +789,9 @@ function renderBlock(id){
 
 function esc(t){return(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-// ─── COPIAR ───────────────────────────────────────────────────
 function copyText(id){
   const el=document.getElementById('edit-'+id);
-  const text=el?el.value:generatedContent[id]||'';
-  navigator.clipboard.writeText(text).then(()=>toast('Copiado!','ok'));
+  navigator.clipboard.writeText(el?el.value:generatedContent[id]||'').then(()=>toast('Copiado!','ok'));
 }
 function copyAllContent(){
   const all=Object.entries(generatedContent)
@@ -824,11 +802,11 @@ function copyAllContent(){
 
 // ─── GOOGLE DOCS ──────────────────────────────────────────────
 function autorizarGoogle(){
-  const scope='https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
   const url='https://accounts.google.com/o/oauth2/v2/auth'
     +'?client_id=321725219758-ua8uqrvitol8bfk1421va2c0b7b2k1fv.apps.googleusercontent.com'
     +'&redirect_uri='+encodeURIComponent('https://nera-digital-delta.vercel.app/oauth-callback.html')
-    +'&response_type=code&scope='+encodeURIComponent(scope)+'&access_type=offline&prompt=consent';
+    +'&response_type=code&scope='+encodeURIComponent('https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file')
+    +'&access_type=offline&prompt=consent';
   window.open(url,'_blank');
 }
 
@@ -838,9 +816,7 @@ async function criarGoogleDoc(){
   const btn=document.getElementById('btn-criar-doc');
   spinner.style.display='inline-block';btn.disabled=true;
 
-  let analise={};
-  try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
-
+  const a=generatedAnalise;
   const get=(id)=>{const el=document.getElementById('edit-'+id);return el?el.value:generatedContent[id]||''};
 
   try{
@@ -848,24 +824,30 @@ async function criarGoogleDoc(){
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
       body:JSON.stringify({
-        titulo:analise.titulo_seo||ctx.kw,
+        titulo:a.titulo_seo||ctx.kw,
+        meta_title:a.titulo_seo||ctx.kw,
         cliente:ctx.biz,
-        keyword:ctx.kw,
-        slug:analise.slug||'',
-        meta_desc:analise.meta_description||'',
+        keyword:a.keyword_principal||ctx.kw,
+        slug:a.slug||'',
+        meta_desc:a.meta_description||'',
+        lsi_terms:a.lsi_terms||[],
+        schema_recomendado:a.schema_recomendado||[],
+        imagem_nome:a.imagem_nome||'',
+        imagem_alt:a.imagem_alt||'',
         artigo:get('artigo'),
         gmn:get('gmn'),
         instagram:get('instagram'),
         facebook:get('facebook'),
         linkedin:get('linkedin'),
+        paginas_site:ctx.pages||'',
         semana_id:localStorage.getItem('nd_last_semana_id')||'',
+        cliente_id:clienteSelecionadoId||'',
       })
     });
     const data=await resp.json();
     if(data.success){
-      const docUrl=data.doc_url;
       document.getElementById('doc-status').innerHTML=
-        `<div class="status-bar success">📄 Google Doc criado! <a href="${docUrl}" target="_blank" style="color:var(--green);font-weight:600;margin-left:6px">Abrir documento</a> &nbsp;|&nbsp; <a href="aprovar.html?doc=${encodeURIComponent(docUrl)}&cliente=${encodeURIComponent(ctx.biz)}" style="color:var(--green);font-weight:600">Aprovar e enviar ao cliente →</a></div>`;
+        `<div class="status-bar success">📄 Google Doc criado com sucesso! <a href="${data.doc_url}" target="_blank" style="color:var(--green);font-weight:600;margin-left:6px">Abrir documento →</a></div>`;
       toast('Google Doc criado!','ok');
     }else{
       if(data.error&&(data.error.includes('autorizado')||data.error.includes('token')))
@@ -876,9 +858,7 @@ async function criarGoogleDoc(){
     document.getElementById('doc-status').innerHTML=`<div class="status-bar error">${e.message}</div>`;
     if(e.message.includes('autorizado')||e.message.includes('token'))
       document.getElementById('google-auth-banner').style.display='block';
-  }finally{
-    spinner.style.display='none';btn.disabled=false;
-  }
+  }finally{spinner.style.display='none';btn.disabled=false;}
 }
 
 // ─── SALVAR SUPABASE ──────────────────────────────────────────
@@ -887,13 +867,13 @@ async function saveToSupabase(){
   spinner.style.display='inline-block';
   const status=document.getElementById('save-status');
   const ctx=buildContext();
+  const a=generatedAnalise;
 
   try{
-    // Usar cliente selecionado ou buscar/criar
     let clienteId=clienteSelecionadoId;
     if(!clienteId){
       const{data:existente}=await sb.from('clientes').select('id').eq('nome_negocio',ctx.biz).single();
-      if(existente){clienteId=existente.id}
+      if(existente){clienteId=existente.id;}
       else{
         const{data:novo,error:errc}=await sb.from('clientes').insert({
           nome_negocio:ctx.biz,segmento:ctx.seg,cidade:ctx.city,
@@ -904,7 +884,6 @@ async function saveToSupabase(){
       }
     }
 
-    // Criar semana
     const hoje=new Date();
     const seg=getMonday(hoje);
     const dom=new Date(seg);dom.setDate(dom.getDate()+6);
@@ -917,23 +896,25 @@ async function saveToSupabase(){
     if(errs)throw new Error(errs.message);
     const semanaId=semana.id;
 
-    let analise={};
-    try{analise=JSON.parse(generatedContent.analise||'{}')}catch(e){}
-
-    const diasAtePublicacao=2;
-    const dataPublicacao=new Date(hoje);
-    dataPublicacao.setDate(hoje.getDate()+diasAtePublicacao);
+    const dataPublicacao=new Date(hoje);dataPublicacao.setDate(hoje.getDate()+2);
 
     const postMap={artigo:'blog',gmn:'gmn',instagram:'instagram',facebook:'facebook',linkedin:'linkedin'};
     for(const[key,tipo]of Object.entries(postMap)){
       if(!generatedContent[key])continue;
       const el=document.getElementById('edit-'+key);
-      const corpo=el?el.value:generatedContent[key];
       await sb.from('posts').insert({
-        semana_id:semanaId,cliente_id:clienteId,tipo,corpo,
-        titulo:analise.titulo_seo||'',meta_desc:analise.meta_description||'',
-        slug:analise.slug||'',palavras_chave:[ctx.kw,...(analise.lsi_terms||[])],
-        imagem_url_externa:generatedContent['img_capa_url']||'',status:'pendente'
+        semana_id:semanaId,cliente_id:clienteId,tipo,
+        corpo:el?el.value:generatedContent[key],
+        titulo:a.titulo_seo||ctx.kw,
+        meta_desc:a.meta_description||'',
+        slug:a.slug||'',
+        schema_json:generatedContent.schema||null,
+        imagem_alt:a.imagem_alt||null,
+        imagem_nome:a.imagem_nome||null,
+        palavras_chave:[ctx.kw,...(a.lsi_terms||[])],
+        schema_recomendado:a.schema_recomendado||[],
+        imagem_url_externa:generatedContent['img_capa_url']||'',
+        status:'pendente'
       });
     }
 
@@ -943,7 +924,6 @@ async function saveToSupabase(){
     spinner.style.display='none';
     status.innerHTML=`<div class="status-bar success">✓ Salvo! Agendado para <strong>${dataPublicacao.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</strong>. Clique em "Criar Google Doc" para enviar para aprovação.</div>`;
     toast('Salvo no Supabase!','ok');
-
   }catch(e){
     spinner.style.display='none';
     status.innerHTML=`<div class="status-bar error">Erro ao salvar: ${e.message}</div>`;
@@ -968,7 +948,7 @@ function resetForm(){
   document.getElementById('form-section').style.display='block';
   document.getElementById('results-section').style.display='none';
   document.getElementById('pipeline-section').style.display='none';
-  generatedContent={};
+  generatedContent={};generatedAnalise={};
   document.getElementById('meta-section').innerHTML='';
   document.getElementById('save-status').innerHTML='';
   document.getElementById('doc-status').innerHTML='';
