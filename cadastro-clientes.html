@@ -248,8 +248,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
       <!-- TIPO PF/PJ -->
       <div class="tipo-toggle">
-        <div class="tipo-btn active" id="btn-pj" onclick="setTipo('PJ')">🏢 Pessoa Jurídica</div>
-        <div class="tipo-btn" id="btn-pf" onclick="setTipo('PF')">👤 Pessoa Física</div>
+        <div class="tipo-btn active" id="btn-pj" onclick="setTipo('pj')">🏢 Pessoa Jurídica</div>
+        <div class="tipo-btn" id="btn-pf" onclick="setTipo('pf')">👤 Pessoa Física</div>
       </div>
 
       <!-- BLOCO PJ -->
@@ -668,7 +668,7 @@ function resetForm(){
   document.getElementById('status_cliente').value='ativo';
   document.getElementById('tom_voz').value='Profissional e confiável';
   setPlataformas(['blog','gmn','instagram','facebook']);
-  setTipo('PJ');
+  setTipo('pj');
 }
 
 // ─── PLATAFORMAS CHECKBOXES ───────────────────────────────────
